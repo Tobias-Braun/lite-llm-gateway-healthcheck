@@ -1,0 +1,17 @@
+/// <reference types="vitest/config" />
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    // In development the FastAPI backend runs separately; in production it serves dist/ itself.
+    proxy: {
+      "/api": "http://localhost:8000",
+    },
+  },
+  test: {
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
+  },
+});
