@@ -6,6 +6,20 @@ availability per model family in a small React dashboard.
 
 The full requirements live in [prompt.txt](prompt.txt). Work is tracked in GitHub issues.
 
+## Quick start (Docker)
+
+```sh
+cp .env.example .env          # then set GATEWAY_URL, API_KEY and MODEL_FAMILIES
+docker compose up --build
+```
+
+Open http://localhost:8000. The image builds the dashboard and serves it from the FastAPI app;
+results are stored in SQLite on the `healthcheck-data` volume. The container reports its health
+via `/api/health`.
+
+`frontend/package-lock.json` is not committed yet, so the Docker build and CI fall back to
+`npm install` when it is missing.
+
 ## Backend
 
 FastAPI app in `backend/` (Python 3.12+). On startup it creates the SQLite database, runs a

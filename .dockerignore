@@ -1,0 +1,15 @@
+.git
+.github
+.claude
+.env
+.env.*
+!.env.example
+list_models.py
+data
+**/node_modules
+**/dist
+**/.venv
+**/__pycache__
+**/.pytest_cache
+*.db
+*.sqlite
