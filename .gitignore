@@ -1,0 +1,21 @@
+# Secrets and local configuration
+.env
+*.sqlite
+*.db
+data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Node
+node_modules/
+dist/
+
+# Local tooling that is not part of this project (contains an internal gateway URL)
+list_models.py
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/worktrees/

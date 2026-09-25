@@ -1,0 +1,280 @@
+Create a fastapi python litellm gateway health check. My company has a litellm-like gateway that is openai compatible. It needs a url, a key, and then supports llm requests.
+
+  Create a fastapi server, that in a fixed interval (configurable) makes an api request via openai api through the gateway via URL (config) and API_KEY (config). Config should be put in .env. The fastapi server should connect to a sqlite database and store results of the call to the model with a given healthcheck prompt (config). The request should be done to all model_families in a list of MODEL_FAMILIES (json config) periodically. Build a small react dashboard that shows the current status of all MODEL_FAMILIES in a list as accordions, with each MODEL in a family (json config nested in MODEL_FAMILIES) as part of a single  accordion panels content. For each MODEL_FAMILY, there should also be a history view, in terms of a green / red colored bar timeline, with datetimes on hover. This should be directly below the accordion panels title. Data structure (roughly) below:
+
+  ModelFamily: { title, history: Modelhistory, models: ModelDef[] }
+  ModelHistory: { availabilityPoints: { datetime: Datetime, available: yes (green) | no (red) | unknown (grey) }
+  ModelDef: { modelname: string, provider: string, company: string }
+
+
+  UI Tree:
+
+  <...>
+  MODELS (Accordion)
+  MODEL_FAMILY (Acc Panel
+  > TITLE (Acc Panel Head)
+  > AVAILABILITY_BAR_TIMELINE (row)
+  > MODEL (row)
+  > > Name (col)
+  > > Provider (col)
+  > > Company (col)
+
+  <...>
+
+  --- END OF REQUIREMENTS ---
+  <gateway-model-list>
+  Model Name    Provider    Input Price    Output Price
+  Features
+  Filter features...
+  Actions
+  qwen-3.6-35b-sovereign
+  adesso
+  ✓
+  Free
+  ✓
+  Free
+  abc hosted
+  Sovereign
+  200k context window
+  DE
+  Code
+  qwen-3-vl-embedding-2b-sovereign
+  adesso
+  ✓
+  Free
+  ✓
+  Free
+  abc hosted
+  Sovereign
+  8k context window
+  DE
+  embedding
+  Code
+  deepseek-v4-flash-sovereign
+  adesso
+  ✓
+  Free
+  ✓
+  Free
+  abc hosted
+  Sovereign
+  200k context window
+  DE
+  Code
+  claude-opus-5-5
+  claude-opus-5-5*
+  Google    $4.40M tokens    $22.00M tokens
+  EU-Hosted
+  Code
+  claude-opus-5
+  Google    $5.50M tokens    $27.50M tokens
+  EU-Hosted
+  Code
+  claude-opus-4-5
+  claude-opus-4-5*
+  Google    $5.50M tokens    $27.50M tokens
+  EU-Hosted
+  Code
+  claude-sonnet-4-5
+  claude-sonnet-4-5*
+  Google    $3.30M tokens    $16.50M tokens
+  EU-Hosted
+  Code
+  claude-haiku-4-5
+  claude-haiku-4-5*
+  Google    $1.10M tokens    $5.50M tokens
+  EU-Hosted
+  Code
+  claude-opus-4-6
+  claude-opus-4-6*
+  Google    $5.50M tokens    $27.50M tokens
+  EU-Hosted
+  Code
+  claude-sonnet-4-6
+  claude-sonnet-4-6*
+  Google    $3.30M tokens    $16.50M tokens
+  EU-Hosted
+  Code
+  claude-sonnet-5
+  claude-sonnet-5*
+  Google    $2.20M tokens    $11.00M tokens
+  EU-Hosted
+  Code
+  claude-opus-4-7
+  claude-opus-4-7*
+  Google    $5.50M tokens    $27.50M tokens
+  EU-Hosted
+  Code
+  claude-opus-4-8
+  claude-opus-4-8*
+  Google    $5.50M tokens    $27.50M tokens
+  EU-Hosted
+  Code
+  claude-fable-5-1
+  claude-fable-5-1*
+  Google    $11.00M tokens    $55.00M tokens
+  EU-Hosted
+  Code
+  gemini-2.5-flash
+  Google    $0.30M tokens    $2.50M tokens
+  EU-Hosted
+  Code
+  gemini-2.5-pro
+  Google    $1.25M tokens    $10.00M tokens
+  EU-Hosted
+  Code
+  gemini-2.5-flash-image
+  Google    $0.30M tokens    $2.50M tokens
+  EU-Hosted
+  image-gen
+  image-edit
+  Code
+  gemini-3.5-flash
+  Google    $1.65M tokens    $9.90M tokens
+  EU-Hosted
+  Code
+  gemini-3.6-flash
+  Google    $0.83M tokens    $4.13M tokens
+  EU-Hosted
+  Code
+  gemini-3.7-flash
+  Google    $0.83M tokens    $4.13M tokens
+  EU-Hosted
+  Code
+  gemini-3.8-flash
+  Google    $0.83M tokens    $4.13M tokens
+  EU-Hosted
+  Code
+  gemini-3.5-flash-lite
+  Google    $0.33M tokens    $2.75M tokens
+  EU-Hosted
+  Code
+  google/gemma-4-31b-it
+  StackIT    $0.45M tokens    $0.65M tokens
+  DE
+  Code
+  intfloat/e5-mistral-7b-instruct
+  StackIT    $0.02M tokens    Free
+  DE
+  embedding
+  Code
+  llama-3-3-70b
+  StackIT    $0.45M tokens    $0.65M tokens
+  DE
+  Code
+  qwen3.8-27b
+  StackIT    $0.45M tokens    $0.65M tokens
+  DE
+  Code
+  o3-mini
+  Azure    $1.21M tokens    $4.84M tokens
+  EU-Hosted
+  Code
+  o4-mini
+  Azure    $1.21M tokens    $4.84M tokens
+  EU-Hosted
+  Code
+  gpt-4o
+  Azure    $2.75M tokens    $11.00M tokens
+  EU-Hosted
+  Code
+  gpt-4.1
+  Azure    $2.20M tokens    $8.80M tokens
+  EU-Hosted
+  Code
+  gpt-4.1-mini
+  Azure    $0.44M tokens    $1.76M tokens
+  EU-Hosted
+  Code
+  gpt-4.1-nano
+  Azure    $0.11M tokens    $0.44M tokens
+  EU-Hosted
+  Code
+  gpt-5
+  Azure    $1.38M tokens    $11.00M tokens
+  EU-Hosted
+  Code
+  gpt-5-mini
+  Azure    $0.28M tokens    $2.20M tokens
+  EU-Hosted
+  Code
+  gpt-5-nano
+  Azure    $0.06M tokens    $0.44M tokens
+  EU-Hosted
+  Code
+  gpt-5.1
+  Azure    $1.38M tokens    $11.00M tokens
+  EU-Hosted
+  Code
+  gpt-5.4
+  Azure    $2.76M tokens    $16.51M tokens
+  EU-Hosted
+  Code
+  gpt-5.5
+  Azure    $5.51M tokens    $33.01M tokens
+  EU-Hosted
+  Code
+  gpt-5.6-sol
+  Azure    $5.50M tokens    $33.00M tokens
+  EU-Hosted
+  Code
+  gpt-5.6-terra
+  Azure    $2.20M tokens    $13.20M tokens
+  EU-Hosted
+  Code
+  gpt-5.6-luna
+  Azure    $0.22M tokens    $1.32M tokens
+  EU-Hosted
+  Code
+  gpt-6-sol
+  Azure    $2.40M tokens    $12.00M tokens
+  EU-Hosted
+  Code
+  gpt-6-luna
+  Azure    $0.12M tokens    $0.60M tokens
+  EU-Hosted
+  Code
+  text-embedding-3-large
+  Azure    $0.16M tokens    Free
+  EU-Hosted
+  embedding
+  Code
+  gpt-image-1.5
+  Azure    $5.50M tokens    Free
+  EU-Hosted
+  image-gen
+  Code
+  gpt-oss-120b
+  AWS    $0.20M tokens    $0.79M tokens
+  DE
+  Code
+  gpt-oss-20b
+  AWS    $0.09M tokens    $0.40M tokens
+  DE
+  Code
+  qwen3-coder-480b
+  AWS    $0.45M tokens    $1.80M tokens
+  EU-Hosted
+  Code
+  qwen3-235b
+  AWS    $0.22M tokens    $0.88M tokens
+  EU-Hosted
+  Code
+  devstral-2-123b
+  AWS    $0.48M tokens    $2.40M tokens
+  DE
+  Code
+  nemotron-3-super-120b
+  AWS    $0.18M tokens    $0.78M tokens
+  DE
+  Code
+  nova-2-lite
+  AWS    $0.43M tokens    $3.60M tokens
+  EU-Hosted
+  Code
+  titan-embed-text-v2
+  AWS    $0.20M tokens    Free
+  DE
+  embedding
+  Code
+  </gateway-model-list>
