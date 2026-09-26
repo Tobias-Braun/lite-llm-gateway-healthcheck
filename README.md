@@ -37,6 +37,7 @@ Tests (the OpenAI client is mocked, no gateway needed):
 ```sh
 cd backend
 .venv/bin/python -m pytest
+```
 
 ## Frontend
 

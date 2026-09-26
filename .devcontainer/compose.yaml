@@ -1,0 +1,18 @@
+# The factory runs every agent in the `agent` service. Each issue gets its own compose project
+# (<repo>-issue-<n>), so app services added here (databases, queues, ...) run once per issue.
+#
+# Rules for this file:
+#   - no Docker socket and no host home directory in any service,
+#   - no published host ports, so parallel issue stacks can't collide; services reach each other
+#     by service name,
+#   - secrets only come in through the two pass-through variables of `agent`.
+services:
+  agent:
+    build: .
+    command: sleep infinity
+    volumes:
+      # The factory points this at the issue's fresh clone; outside the factory it is the repo.
+      - ${FACTORY_WORKSPACE:-..}:/workspace
+    environment:
+      - GH_TOKEN
+      - CLAUDE_CODE_OAUTH_TOKEN
