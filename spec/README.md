@@ -5,3 +5,4 @@ they add, move or split a spec file.
 
 | File | Contents |
 |---|---|
+| [deployment.md](deployment.md) | Docker image, `docker-compose.yml`, CI pipeline, README quick start |
