@@ -1,0 +1,7 @@
+**/node_modules
+**/dist
+**/.venv
+.env
+data
+.git
+list_models.py
