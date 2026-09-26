@@ -3,6 +3,7 @@ import type { Availability } from "./types";
 export const AVAILABILITY_LABEL: Record<Availability, string> = {
   yes: "available",
   no: "unavailable",
+  partial: "partially available",
   unknown: "unknown",
 };
 

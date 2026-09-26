@@ -1,5 +1,6 @@
 import type { ModelDef } from "../types";
 import { AVAILABILITY_LABEL, formatDateTime } from "../format";
+import { AvailabilityTimeline } from "./AvailabilityTimeline";
 import { StatusDot } from "./StatusDot";
 
 interface ModelTableProps {
@@ -33,6 +34,7 @@ export function ModelTable({ models }: ModelTableProps) {
           <th>Name</th>
           <th>Provider</th>
           <th>Company</th>
+          <th>History</th>
         </tr>
       </thead>
       <tbody>
@@ -44,6 +46,9 @@ export function ModelTable({ models }: ModelTableProps) {
             </td>
             <td>{model.provider}</td>
             <td>{model.company}</td>
+            <td>
+              <AvailabilityTimeline points={model.history.availabilityPoints} small />
+            </td>
           </tr>
         ))}
       </tbody>

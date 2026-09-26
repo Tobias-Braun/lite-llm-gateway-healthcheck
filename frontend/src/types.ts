@@ -1,6 +1,6 @@
 /** Mirrors the shared `GET /api/families` contract served by the FastAPI backend. */
 
-export type Availability = "yes" | "no" | "unknown";
+export type Availability = "yes" | "no" | "partial" | "unknown";
 
 export interface AvailabilityPoint {
   /** ISO 8601 timestamp (UTC). */
@@ -21,6 +21,7 @@ export interface ModelDef {
   lastChecked: string | null;
   latencyMs: number | null;
   error: string | null;
+  history: ModelHistory;
 }
 
 export interface ModelFamily {

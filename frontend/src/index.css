@@ -7,6 +7,7 @@
   --hover: #f0f2f5;
   --yes: #2da44e;
   --no: #d1242f;
+  --partial: #bf8700;
   --unknown: #a0a7b0;
   --error-bg: #ffebe9;
 
@@ -26,6 +27,7 @@
     --hover: #1f2630;
     --yes: #3fb950;
     --no: #f85149;
+    --partial: #d29922;
     --unknown: #6e7681;
     --error-bg: #3d1417;
   }
@@ -148,6 +150,10 @@ body {
   background: var(--no);
 }
 
+.status-partial {
+  background: var(--partial);
+}
+
 .status-unknown {
   background: var(--unknown);
 }
@@ -158,6 +164,11 @@ body {
   height: 20px;
   padding: 0 16px 12px;
   box-sizing: content-box;
+}
+
+.timeline-small {
+  height: 10px;
+  padding: 0;
 }
 
 .timeline-segment {
