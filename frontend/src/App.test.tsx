@@ -9,17 +9,19 @@ describe("Accordion", () => {
     const { container } = render(<Accordion families={families} />);
 
     const heads = screen.getAllByRole("button");
-    expect(heads).toHaveLength(2);
+    expect(heads).toHaveLength(3);
     expect(heads[0]).toHaveTextContent("Claude");
     expect(heads[0]).toHaveAttribute("aria-expanded", "false");
 
-    const segments = container.querySelectorAll(".timeline-segment");
-    // 3 points for Claude plus the grey placeholder for GPT.
-    expect(segments).toHaveLength(4);
+    // Scoped to each panel's own family-level timeline, not the nested per-model ones.
+    const segments = container.querySelectorAll(".panel > .timeline .timeline-segment");
+    // 3 points for Claude, the grey placeholder for GPT, 1 point for Partial.
+    expect(segments).toHaveLength(5);
     expect(segments[0]).toHaveClass("status-no");
     expect(segments[2]).toHaveClass("status-yes");
     expect(segments[3]).toHaveClass("status-unknown");
     expect(segments[2].getAttribute("title")).toMatch(/available$/);
+    expect(segments[4]).toHaveClass("status-partial");
 
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
@@ -34,9 +36,14 @@ describe("Accordion", () => {
     expect(tables).toHaveLength(2);
 
     const rows = within(tables[0]).getAllByRole("row");
-    expect(rows[0]).toHaveTextContent("NameProviderCompany");
+    expect(rows[0]).toHaveTextContent("NameProviderCompanyHistory");
     expect(rows[1]).toHaveTextContent("claude-sonnet-5GoogleAnthropic");
     expect(within(rows[2]).getByRole("img")).toHaveAttribute("title", "Timeout after 30s");
+
+    // Each model row also gets its own small timeline, driven by that model's own history.
+    const modelSegments = within(rows[2]).getAllByTitle(/unavailable$/);
+    expect(modelSegments).toHaveLength(2);
+    expect(modelSegments[0]).toHaveClass("timeline-segment", "status-no");
   });
 });
 
