@@ -21,6 +21,12 @@ export const families: ModelFamily[] = [
         lastChecked: "2026-09-25T15:00:00Z",
         latencyMs: 812,
         error: null,
+        history: {
+          availabilityPoints: [
+            { datetime: "2026-09-25T14:30:00Z", available: "yes" },
+            { datetime: "2026-09-25T15:00:00Z", available: "yes" },
+          ],
+        },
       },
       {
         modelname: "claude-opus-5",
@@ -30,6 +36,12 @@ export const families: ModelFamily[] = [
         lastChecked: "2026-09-25T15:00:00Z",
         latencyMs: null,
         error: "Timeout after 30s",
+        history: {
+          availabilityPoints: [
+            { datetime: "2026-09-25T14:30:00Z", available: "no" },
+            { datetime: "2026-09-25T15:00:00Z", available: "no" },
+          ],
+        },
       },
     ],
   },
@@ -46,6 +58,36 @@ export const families: ModelFamily[] = [
         lastChecked: null,
         latencyMs: null,
         error: null,
+        history: { availabilityPoints: [] },
+      },
+    ],
+  },
+  {
+    title: "Partial",
+    status: "partial",
+    history: {
+      availabilityPoints: [{ datetime: "2026-09-25T15:00:00Z", available: "partial" }],
+    },
+    models: [
+      {
+        modelname: "model-a",
+        provider: "Azure",
+        company: "OpenAI",
+        status: "yes",
+        lastChecked: "2026-09-25T15:00:00Z",
+        latencyMs: 120,
+        error: null,
+        history: { availabilityPoints: [{ datetime: "2026-09-25T15:00:00Z", available: "yes" }] },
+      },
+      {
+        modelname: "model-b",
+        provider: "Azure",
+        company: "OpenAI",
+        status: "no",
+        lastChecked: "2026-09-25T15:00:00Z",
+        latencyMs: null,
+        error: "down",
+        history: { availabilityPoints: [{ datetime: "2026-09-25T15:00:00Z", available: "no" }] },
       },
     ],
   },

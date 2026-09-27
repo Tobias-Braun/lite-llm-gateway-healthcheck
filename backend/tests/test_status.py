@@ -24,15 +24,19 @@ def test_rounds_are_aggregated_per_family(settings: Settings) -> None:
     claude, gpt, never = get_families(settings)
 
     # history_limit is 3 in the fixture: the oldest round is dropped, order is oldest first.
+    # One model down out of two is a mixed round: `partial`, not `no`.
     assert [(p.datetime, p.available) for p in claude.history.availability_points] == [
-        ("2026-09-25T15:05:00Z", "no"),
+        ("2026-09-25T15:05:00Z", "partial"),
         ("2026-09-25T15:10:00Z", "yes"),
-        ("2026-09-25T15:15:00Z", "no"),
+        ("2026-09-25T15:15:00Z", "partial"),
     ]
-    assert claude.status == "no"
+    assert claude.status == "partial"
     assert [m.status for m in claude.models] == ["yes", "no"]
     assert claude.models[1].error == "boom"
     assert claude.models[1].last_checked == "2026-09-25T15:15:00Z"
+    # Each model's own history only ever holds `yes`/`no`, independent of the family's mix.
+    assert [p.available for p in claude.models[0].history.availability_points] == ["yes", "yes", "yes"]
+    assert [p.available for p in claude.models[1].history.availability_points] == ["no", "yes", "no"]
 
     assert [p.available for p in gpt.history.availability_points] == ["yes", "yes", "yes"]
     assert gpt.status == "yes"
@@ -42,6 +46,17 @@ def test_rounds_are_aggregated_per_family(settings: Settings) -> None:
     assert never.history.availability_points == []
     assert never.models[0].status == "unknown"
     assert never.models[0].last_checked is None
+    assert never.models[0].history.availability_points == []
+
+
+def test_family_is_no_only_when_every_model_fails(settings: Settings) -> None:
+    all_down = {("Claude", "claude-sonnet-5"): False, ("Claude", "claude-opus-5"): False}
+    _round(settings, "r1", "2026-09-25T15:00:00Z", all_down)
+
+    claude = get_families(settings)[0]
+
+    assert claude.status == "no"
+    assert [p.available for p in claude.history.availability_points] == ["no"]
 
 
 def test_removed_models_are_ignored(settings: Settings) -> None:
