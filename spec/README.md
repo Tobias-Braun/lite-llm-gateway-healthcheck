@@ -5,4 +5,5 @@ they add, move or split a spec file.
 
 | File | Contents |
 |---|---|
+| [api-families.md](api-families.md) | `GET /api/families` contract: availability values, family/model aggregation rules, dashboard rendering |
 | [deployment.md](deployment.md) | Docker image, `docker-compose.yml`, CI pipeline, README quick start |

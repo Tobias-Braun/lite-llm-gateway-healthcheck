@@ -91,19 +91,32 @@ def latest_results(path: Path, family: str, models: list[str]) -> dict[str, Chec
     }
 
 
-def recent_rounds(path: Path, family: str, models: list[str], limit: int) -> list[tuple[str, bool]]:
-    """Return `(round_at, all_succeeded)` for the last `limit` rounds of a family, oldest first.
+def recent_rounds(path: Path, family: str, models: list[str], limit: int) -> list[tuple[str, int, int]]:
+    """Return `(round_at, succeeded, total)` for the last `limit` rounds of a family, oldest first.
 
-    Only results of the currently configured models count, so models removed from the
-    configuration no longer influence the family's availability.
+    `total` is how many of the currently configured models reported in that round, so models
+    removed from the configuration no longer influence the family's availability.
     """
     if not models or limit <= 0:
         return []
     with closing(connect(path)) as conn:
         rows = conn.execute(
-            "SELECT round_at, MIN(success) AS all_ok FROM checks"
+            "SELECT round_at, SUM(success) AS succeeded, COUNT(*) AS total FROM checks"
             f" WHERE family = ? AND model IN ({_placeholders(models)})"
             " GROUP BY round_id, round_at ORDER BY round_at DESC, round_id DESC LIMIT ?",
             [family, *models, limit],
         ).fetchall()
-    return [(row["round_at"], bool(row["all_ok"])) for row in reversed(rows)]
+    return [(row["round_at"], row["succeeded"], row["total"]) for row in reversed(rows)]
+
+
+def model_recent_rounds(path: Path, family: str, model: str, limit: int) -> list[tuple[str, bool]]:
+    """Return `(round_at, success)` for the last `limit` rounds of a single model, oldest first."""
+    if limit <= 0:
+        return []
+    with closing(connect(path)) as conn:
+        rows = conn.execute(
+            "SELECT round_at, success FROM checks WHERE family = ? AND model = ?"
+            " ORDER BY round_at DESC, id DESC LIMIT ?",
+            [family, model, limit],
+        ).fetchall()
+    return [(row["round_at"], bool(row["success"])) for row in reversed(rows)]
