@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     healthcheck_prompt: str = "Reply with OK."
     request_timeout_seconds: float = 30
     request_interval_seconds: float = 2
+    fake_data: bool = False
     database_path: Path = Path("data/healthcheck.db")
     history_limit: int = 50
     static_dir: Path | None = None

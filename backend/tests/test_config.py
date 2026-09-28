@@ -24,3 +24,16 @@ def test_invalid_model_families_json_fails_fast(monkeypatch) -> None:
 
     with pytest.raises(SettingsError, match="model_families"):
         Settings(_env_file=None)
+
+
+def test_fake_data_defaults_to_false(monkeypatch) -> None:
+    monkeypatch.setenv("MODEL_FAMILIES", "[]")
+
+    assert Settings(_env_file=None).fake_data is False
+
+
+def test_fake_data_is_read_from_env(monkeypatch) -> None:
+    monkeypatch.setenv("MODEL_FAMILIES", "[]")
+    monkeypatch.setenv("FAKE_DATA", "true")
+
+    assert Settings(_env_file=None).fake_data is True

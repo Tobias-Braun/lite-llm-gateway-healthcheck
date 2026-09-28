@@ -25,6 +25,7 @@ setting; the ones you'll typically change:
 | `CHECK_INTERVAL_SECONDS` | Seconds between two check rounds (default 300) |
 | `REQUEST_INTERVAL_SECONDS` | Minimum spacing between the start of two requests within a round (default 2) |
 | `HISTORY_LIMIT` | Rounds of history returned per family (default 50) |
+| `FAKE_DATA` | Set to `true` to try the dashboard with synthetic data, no real gateway or API key needed (default `false`) |
 
 ## Backend
 
