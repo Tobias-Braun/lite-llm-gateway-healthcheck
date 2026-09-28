@@ -23,6 +23,7 @@ setting; the ones you'll typically change:
 | `API_KEY` | Gateway API key |
 | `MODEL_FAMILIES` | Families and models to check, as single-line JSON |
 | `CHECK_INTERVAL_SECONDS` | Seconds between two check rounds (default 300) |
+| `REQUEST_INTERVAL_SECONDS` | Minimum spacing between the start of two requests within a round (default 2) |
 | `HISTORY_LIMIT` | Rounds of history returned per family (default 50) |
 
 ## Backend
