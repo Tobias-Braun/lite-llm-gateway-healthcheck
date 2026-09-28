@@ -1,4 +1,7 @@
 import asyncio
+import time
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 from app import checker, db
 from app.config import Settings
@@ -34,6 +37,28 @@ def test_request_uses_prompt_and_small_token_limit(settings: Settings) -> None:
     assert kwargs["messages"] == [{"role": "user", "content": settings.healthcheck_prompt}]
     assert kwargs["max_tokens"] == checker.MAX_TOKENS
     assert kwargs["timeout"] == settings.request_timeout_seconds
+
+
+def test_request_interval_paces_request_starts(settings: Settings) -> None:
+    start_times: list[float] = []
+
+    async def create(*, model: str, **_: object) -> object:
+        start_times.append(time.perf_counter())
+        return SimpleNamespace(choices=[])
+
+    client = SimpleNamespace(
+        chat=SimpleNamespace(completions=SimpleNamespace(create=AsyncMock(side_effect=create))),
+        close=AsyncMock(),
+    )
+    settings.request_interval_seconds = 0.05
+
+    started = time.perf_counter()
+    asyncio.run(checker.run_round(settings, client))
+
+    assert len(start_times) == 4
+    assert time.perf_counter() - started >= 3 * settings.request_interval_seconds
+    gaps = [b - a for a, b in zip(start_times, start_times[1:])]
+    assert all(gap >= settings.request_interval_seconds for gap in gaps)
 
 
 def test_run_forever_survives_a_failing_round(settings: Settings, monkeypatch) -> None:
