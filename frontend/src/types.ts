@@ -6,6 +6,9 @@ export interface AvailabilityPoint {
   /** ISO 8601 timestamp (UTC). */
   datetime: string;
   available: Availability;
+  /** Model-level points only: that round's latency (for `yes`) or error (for `no`). */
+  latencyMs?: number | null;
+  error?: string | null;
 }
 
 export interface ModelHistory {

@@ -37,6 +37,10 @@ def test_rounds_are_aggregated_per_family(settings: Settings) -> None:
     # Each model's own history only ever holds `yes`/`no`, independent of the family's mix.
     assert [p.available for p in claude.models[0].history.availability_points] == ["yes", "yes", "yes"]
     assert [p.available for p in claude.models[1].history.availability_points] == ["no", "yes", "no"]
+    # Model-level points additionally carry that round's latency/error; family points don't.
+    assert [p.latency_ms for p in claude.models[0].history.availability_points] == [100, 100, 100]
+    assert [p.error for p in claude.models[1].history.availability_points] == ["boom", None, "boom"]
+    assert not hasattr(claude.history.availability_points[0], "latency_ms")
 
     assert [p.available for p in gpt.history.availability_points] == ["yes", "yes", "yes"]
     assert gpt.status == "yes"

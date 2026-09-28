@@ -7,6 +7,18 @@ interface AvailabilityTimelineProps {
   small?: boolean;
 }
 
+/** Time and status as today, plus latency (for `yes`) or error (for `no`) when the round has one. */
+function pointTooltip(point: AvailabilityPoint): string {
+  const base = `${formatDateTime(point.datetime)}: ${AVAILABILITY_LABEL[point.available]}`;
+  if (point.available === "yes" && point.latencyMs != null) {
+    return `${base}, ${point.latencyMs} ms`;
+  }
+  if (point.available === "no" && point.error) {
+    return `${base}, ${point.error}`;
+  }
+  return base;
+}
+
 /** One colored segment per check (oldest left), with the datetime and state as native tooltip. */
 export function AvailabilityTimeline({ points, small }: AvailabilityTimelineProps) {
   const className = `timeline${small ? " timeline-small" : ""}`;
@@ -25,7 +37,7 @@ export function AvailabilityTimeline({ points, small }: AvailabilityTimelineProp
         <span
           key={point.datetime}
           className={`timeline-segment status-${point.available}`}
-          title={`${formatDateTime(point.datetime)}: ${AVAILABILITY_LABEL[point.available]}`}
+          title={pointTooltip(point)}
         />
       ))}
     </div>

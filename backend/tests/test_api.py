@@ -44,13 +44,20 @@ def test_families_response_shape(settings: Settings) -> None:
     }
     assert claude["models"][0]["modelname"] == "claude-sonnet-5"
     assert claude["models"][0]["lastChecked"] == point["datetime"]
-    assert [p["available"] for p in claude["models"][0]["history"]["availabilityPoints"]] == ["yes"]
+    [model_point] = claude["models"][0]["history"]["availabilityPoints"]
+    assert model_point["available"] == "yes"
+    assert set(model_point) == {"datetime", "available", "latencyMs", "error"}
+    assert model_point["latencyMs"] is not None
+    assert model_point["error"] is None
 
     assert gpt["status"] == "no"
     assert gpt["models"][0]["status"] == "no"
     assert "gpt-5 is down" in gpt["models"][0]["error"]
     assert gpt["models"][0]["latencyMs"] is None
-    assert [p["available"] for p in gpt["models"][0]["history"]["availabilityPoints"]] == ["no"]
+    [gpt_point] = gpt["models"][0]["history"]["availabilityPoints"]
+    assert gpt_point["available"] == "no"
+    assert "gpt-5 is down" in gpt_point["error"]
+    assert gpt_point["latencyMs"] is None
 
     assert never == {
         "title": "Never checked",
