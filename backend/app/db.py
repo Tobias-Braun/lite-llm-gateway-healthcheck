@@ -62,6 +62,16 @@ def insert_results(path: Path, results: list[CheckResult]) -> None:
         )
 
 
+def model_history_bounds(path: Path, family: str, model: str) -> tuple[int, str | None]:
+    """Return `(stored round count, oldest round_at)` for one model; `oldest_at` is `None` if empty."""
+    with closing(connect(path)) as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS count, MIN(round_at) AS oldest FROM checks WHERE family = ? AND model = ?",
+            [family, model],
+        ).fetchone()
+    return row["count"], row["oldest"]
+
+
 def _placeholders(values: list[str]) -> str:
     return ",".join("?" * len(values))
 

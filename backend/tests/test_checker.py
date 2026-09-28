@@ -61,6 +61,46 @@ def test_request_interval_paces_request_starts(settings: Settings) -> None:
     assert all(gap >= settings.request_interval_seconds for gap in gaps)
 
 
+def test_fake_data_round_does_not_call_the_gateway(settings: Settings) -> None:
+    settings.fake_data = True
+    client = mock_client()
+
+    results = asyncio.run(checker.run_round(settings, client))
+
+    assert len(results) == 4
+    client.chat.completions.create.assert_not_awaited()
+    assert len({r.round_id for r in results}) == 1
+    for r in results:
+        if r.success:
+            assert 50 <= r.latency_ms <= 400
+            assert r.error is None
+        else:
+            assert r.latency_ms is None
+            assert r.error == checker.FAKE_ERROR_MESSAGE
+
+
+def test_backfill_fake_history_tops_up_to_48_rounds(settings: Settings) -> None:
+    settings.fake_data = True
+    settings.check_interval_seconds = 60
+    # "claude-opus-5" already has one round; every other model starts empty.
+    existing = db.CheckResult("r0", checker.utc_now_iso(), "Claude", "claude-opus-5", True, 100, None)
+    db.insert_results(settings.database_path, [existing])
+
+    asyncio.run(checker.backfill_fake_history(settings))
+
+    for family in settings.model_families:
+        for model in family.models:
+            count, _ = db.model_history_bounds(settings.database_path, family.title, model.modelname)
+            assert count == 48
+
+    # A model already at the target is left alone on a later restart.
+    asyncio.run(checker.backfill_fake_history(settings))
+    for family in settings.model_families:
+        for model in family.models:
+            count, _ = db.model_history_bounds(settings.database_path, family.title, model.modelname)
+            assert count == 48
+
+
 def test_run_forever_survives_a_failing_round(settings: Settings, monkeypatch) -> None:
     calls = 0
 
