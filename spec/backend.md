@@ -47,10 +47,23 @@ key.
 
 Each round (startup and every `check_interval_seconds`, same as normal mode) still produces one
 shared `round_id`/timestamp result per model of every configured family, but each model's result
-is generated instead of requested from the gateway:
+is generated instead of requested from the gateway.
 
-- 90% chance of success: a random latency between 50 and 400 ms (inclusive), no error.
-- 10% chance of failure: no latency, error message `Simulated failure (fake data mode)`.
+Every model is deterministically assigned one of two reliability tiers, from a stable hash of
+`"<family title>/<model name>"` — the same model name always resolves to the same tier, for the
+life of the process and again after a restart:
+
+- **Stable tier** (~85% of models): independent 1% chance of failure per round.
+- **Flaky tier** (~15% of models): failures come in clusters instead of independently. While
+  healthy, each round has a 5% chance to start an outage; once started, the outage lasts a
+  randomly chosen 2–5 consecutive failing rounds, then the model returns to healthy. Outage
+  progress is tracked in memory for the running process only, not persisted — a restart resets
+  every flaky model to healthy.
+
+Whichever tier a model is in, the generated result itself keeps the same shape:
+
+- Success: a random latency between 50 and 400 ms (inclusive), no error.
+- Failure: no latency, error message `Simulated failure (fake data mode)`.
 
 Every other round rule (concurrency, failure isolation, request pacing) is not applicable, since
 no HTTP requests are made.
@@ -62,7 +75,9 @@ stored rounds is backfilled with synthetic rounds so its history starts populate
 empty:
 
 - For such a model, enough backdated rounds are inserted to bring its stored round count to 48,
-  generated the same way as a normal synthetic round (see above).
+  generated in chronological order (oldest to newest) using the same tier and clustering rule as
+  a normal synthetic round (see above), so the backfilled history reads consistently with
+  whatever live rounds append after it.
 - Backfilled rounds are spaced `check_interval_seconds` apart, oldest first, ending immediately
   before the model's oldest existing stored round, or immediately before startup time if it has
   none yet.
