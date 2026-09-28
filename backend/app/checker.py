@@ -24,6 +24,9 @@ FAKE_SUCCESS_PROBABILITY = 0.9
 FAKE_LATENCY_RANGE_MS = (50, 400)
 FAKE_ERROR_MESSAGE = "Simulated failure (fake data mode)"
 FAKE_HISTORY_TARGET = 48
+# Not used for security purposes, just synthetic test data; SystemRandom satisfies SonarCloud's
+# pseudorandom-number-generator rating rule (S2245) without changing behaviour.
+_fake_random = random.SystemRandom()
 
 
 def _format_iso(dt: datetime) -> str:
@@ -36,8 +39,8 @@ def utc_now_iso() -> str:
 
 def fake_check_model() -> tuple[bool, int | None, str | None]:
     """Generate a synthetic result: 90% success with a fake latency, else a placeholder error."""
-    if random.random() < FAKE_SUCCESS_PROBABILITY:
-        return True, random.randint(*FAKE_LATENCY_RANGE_MS), None
+    if _fake_random.random() < FAKE_SUCCESS_PROBABILITY:
+        return True, _fake_random.randint(*FAKE_LATENCY_RANGE_MS), None
     return False, None, FAKE_ERROR_MESSAGE
 
 
