@@ -13,3 +13,7 @@ RUN apt-get update \
 USER vscode
 RUN curl -fsSL https://claude.ai/install.sh | bash
 ENV PATH="/home/vscode/.local/bin:${PATH}"
+
+# Every issue gets a fresh container, so nobody can accept the trust dialog for /workspace. Without
+# it Claude Code ignores the project's permissions.allow entries, so the state is seeded here.
+RUN echo '{"hasCompletedOnboarding":true,"projects":{"/workspace":{"hasTrustDialogAccepted":true}}}' > /home/vscode/.claude.json

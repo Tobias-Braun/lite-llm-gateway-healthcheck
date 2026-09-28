@@ -58,12 +58,16 @@ async def run_round(settings: Settings, client: AsyncOpenAI) -> list[db.CheckRes
     round_id = uuid.uuid4().hex
     round_at = utc_now_iso()
     targets = [(family.title, model.modelname) for family in settings.model_families for model in family.models]
-    outcomes = await asyncio.gather(
-        *(
-            check_model(client, model, settings.healthcheck_prompt, settings.request_timeout_seconds)
-            for _, model in targets
+    tasks = []
+    for i, (_, model) in enumerate(targets):
+        if i > 0 and settings.request_interval_seconds > 0:
+            await asyncio.sleep(settings.request_interval_seconds)
+        tasks.append(
+            asyncio.create_task(
+                check_model(client, model, settings.healthcheck_prompt, settings.request_timeout_seconds)
+            )
         )
-    )
+    outcomes = await asyncio.gather(*tasks)
     results = [
         db.CheckResult(round_id, round_at, family, model, success, latency_ms, error)
         for (family, model), (success, latency_ms, error) in zip(targets, outcomes, strict=True)
