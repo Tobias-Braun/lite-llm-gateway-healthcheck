@@ -44,14 +44,30 @@ This rule produces both the family's `status` field (the latest round) and every
   - `status`: the model's own latest availability (`yes` / `no` / `unknown`).
   - `lastChecked`, `latencyMs`, `error`: from the model's latest check, or `null` if none yet.
   - `history.availabilityPoints`: the model's own last `history_limit` rounds, oldest first, in
-    the same shape as the family's history — independent of the other models in the family.
+    the same shape as the family's history — independent of the other models in the family. Each
+    point additionally carries `latencyMs`/`error` from that round's stored check result for this
+    model: present (one of them non-null) when the round has a result, `null`/absent when the
+    point's `available` is `unknown`. Family-level `history.availabilityPoints` keep the plain
+    `{ datetime, available }` shape — a family round aggregates several models, so a single
+    latency or error wouldn't mean anything there.
 
 ## Dashboard rendering
 
 - The family panel head shows a status dot and timeline driven by the family's `status` and
-  `history`, as today.
+  `history`, as today. Its tooltips (status dot and timeline segments) show only time and status,
+  never latency or error — a family round aggregates several models.
 - Each row of the model table additionally shows a small availability timeline, in the same style
   as the family's timeline, driven by that model's own `history`.
 - `partial` gets its own color, distinct from the existing `yes` (green), `no` (red) and `unknown`
   (gray): a yellow status dot and timeline segment, wherever a `partial` status can appear (today,
   only the family panel head and the family timeline).
+- Each model row also shows two columns:
+  - **Latency**: the model's latest check latency (its `latencyMs`), e.g. `120 ms`. Shows `—` if
+    the model has no check yet or its latest check failed.
+  - **Uptime**: the success rate over the model's shown history window, as `yes / (yes + no)`
+    rounds of `history.availabilityPoints`, rounded to a whole-number percentage (e.g. `98%`).
+    `unknown` rounds count towards neither side. Shows `—` if every round in the window is
+    `unknown`.
+- Hovering a model's history-timeline cell shows the same time and status as today, plus — only
+  when that round has a result — the latency in ms for a `yes` round or the error text for a `no`
+  round. `unknown` cells are unchanged (time and status only).
