@@ -4,8 +4,22 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 from app import checker, db
-from app.config import Settings
+from app.config import ModelDef, ModelFamily, Settings
 from tests.conftest import mock_client
+
+
+class _ScriptedRandom:
+    """A stand-in for `random.SystemRandom` that replays fixed `.random()` values."""
+
+    def __init__(self, values: list[float], randint_value: int = 200) -> None:
+        self._values = iter(values)
+        self._randint_value = randint_value
+
+    def random(self) -> float:
+        return next(self._values)
+
+    def randint(self, _a: int, _b: int) -> int:
+        return self._randint_value
 
 
 def test_failing_model_is_recorded_without_breaking_the_round(settings: Settings) -> None:
@@ -77,6 +91,66 @@ def test_fake_data_round_does_not_call_the_gateway(settings: Settings) -> None:
         else:
             assert r.latency_ms is None
             assert r.error == checker.FAKE_ERROR_MESSAGE
+
+
+def test_model_tier_is_deterministic_per_name() -> None:
+    first = checker.is_flaky_tier("Claude", "claude-opus-5")
+    assert checker.is_flaky_tier("Claude", "claude-opus-5") == first
+    # A different family/model name may hash into the other tier.
+    assert isinstance(checker.is_flaky_tier("GPT", "gpt-5"), bool)
+
+
+def test_stable_tier_fails_at_the_low_probability(monkeypatch) -> None:
+    monkeypatch.setattr(checker, "is_flaky_tier", lambda family, model: False)
+    monkeypatch.setattr(checker, "_fake_random", _ScriptedRandom([0.005, 0.5]))
+    state: checker.FakeOutageState = {}
+
+    failure = checker.fake_check_model("Claude", "claude-sonnet-5", state)
+    success = checker.fake_check_model("Claude", "claude-sonnet-5", state)
+
+    assert failure == (False, None, checker.FAKE_ERROR_MESSAGE)
+    assert success[0] is True
+    assert 50 <= success[1] <= 400
+    assert success[2] is None
+
+
+def test_flaky_tier_fails_in_consecutive_clusters(monkeypatch) -> None:
+    monkeypatch.setattr(checker, "is_flaky_tier", lambda family, model: True)
+    # healthy, start a 3-round outage, healthy, healthy.
+    monkeypatch.setattr(checker, "_fake_random", _ScriptedRandom([0.5, 0.01, 0.9, 0.9], randint_value=3))
+    state: checker.FakeOutageState = {}
+
+    outcomes = [checker.fake_check_model("Claude", "claude-opus-5", state) for _ in range(6)]
+
+    assert [success for success, _, _ in outcomes] == [True, False, False, False, True, True]
+    for success, latency_ms, error in outcomes:
+        if success:
+            assert latency_ms is not None and error is None
+        else:
+            assert latency_ms is None
+            assert error == checker.FAKE_ERROR_MESSAGE
+
+
+def test_backfill_fake_history_clusters_flaky_failures_chronologically(
+    settings: Settings, monkeypatch
+) -> None:
+    settings.fake_data = True
+    settings.check_interval_seconds = 60
+    # A single model isolates the scripted random sequence to one outage timeline.
+    model = ModelDef(modelname="claude-opus-5", provider="Google", company="Anthropic")
+    settings.model_families = [ModelFamily(title="Claude", models=[model])]
+    monkeypatch.setattr(checker, "is_flaky_tier", lambda family, model: True)
+    # One outage of length 3 near the start of the backfilled history, healthy afterwards.
+    randoms = [0.5, 0.01] + [0.9] * 60
+    monkeypatch.setattr(checker, "_fake_random", _ScriptedRandom(randoms, randint_value=3))
+
+    asyncio.run(checker.backfill_fake_history(settings))
+
+    rounds = db.model_recent_rounds(settings.database_path, "Claude", "claude-opus-5", limit=48)
+    assert len(rounds) == 48
+    successes = [success for _, success in rounds]
+    assert successes[:6] == [True, False, False, False, True, True]
+    assert all(successes[6:])
 
 
 def test_backfill_fake_history_tops_up_to_48_rounds(settings: Settings) -> None:
