@@ -15,6 +15,17 @@ def test_health(settings: Settings) -> None:
         assert client.get("/api/health").json() == {"status": "ok"}
 
 
+def test_config_returns_app_title(settings: Settings) -> None:
+    settings.app_title = "Acme Gateway"
+
+    with TestClient(create_app(settings, run_checks=False)) as client:
+        response = client.get("/api/config")
+
+    assert response.status_code == 200
+    assert response.json() == {"title": "Acme Gateway"}
+    assert client.app.title == "Acme Gateway"
+
+
 def test_families_response_shape(settings: Settings) -> None:
     # Check all but the last family, which must then show up as never checked.
     checked = settings.model_copy(update={"model_families": settings.model_families[:-1]})

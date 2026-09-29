@@ -52,14 +52,28 @@ describe("Accordion", () => {
   });
 });
 
+function stubFetch(config: { ok: boolean; title?: string } = { ok: true, title: "Gateway Health Check" }) {
+  const fetchMock = vi.fn((url: string) => {
+    if (url === "/api/config") {
+      return Promise.resolve(
+        config.ok
+          ? new Response(JSON.stringify({ title: config.title }), { status: 200 })
+          : new Response("", { status: 500, statusText: "Server Error" }),
+      );
+    }
+    return Promise.resolve(new Response(JSON.stringify(families), { status: 200 }));
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
+}
+
 describe("App", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
   it("loads families from the API", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(families), { status: 200 }));
-    vi.stubGlobal("fetch", fetchMock);
+    const fetchMock = stubFetch();
 
     render(<App />);
     expect(screen.getByText("Loading…")).toBeInTheDocument();
@@ -68,9 +82,35 @@ describe("App", () => {
   });
 
   it("shows an error when the request fails", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 500, statusText: "Server Error" })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) =>
+        Promise.resolve(
+          url === "/api/config"
+            ? new Response(JSON.stringify({ title: "Gateway Health Check" }), { status: 200 })
+            : new Response("", { status: 500, statusText: "Server Error" }),
+        ),
+      ),
+    );
 
     render(<App />);
     expect(await screen.findByRole("alert")).toHaveTextContent("500");
+  });
+
+  it("shows the default title before the config fetch resolves and updates once it does", async () => {
+    stubFetch({ ok: true, title: "Acme Gateway" });
+
+    render(<App />);
+    expect(screen.getByRole("heading", { name: "Gateway Health Check" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Acme Gateway" })).toBeInTheDocument();
+    expect(document.title).toBe("Acme Gateway");
+  });
+
+  it("falls back to the default title when the config fetch fails", async () => {
+    stubFetch({ ok: false });
+
+    render(<App />);
+    await screen.findByText("Claude");
+    expect(screen.getByRole("heading", { name: "Gateway Health Check" })).toBeInTheDocument();
   });
 });
