@@ -4,7 +4,7 @@ A dockerized FastAPI service that periodically sends a health-check prompt to ev
 model of an OpenAI-compatible (LiteLLM-like) gateway, stores the results in SQLite and shows the
 availability per model family in a small React dashboard.
 
-The full requirements live in [prompt.txt](prompt.txt). Work is tracked in GitHub issues.
+The full requirements live in [spec/README.md](spec/README.md). Work is tracked in GitHub issues.
 
 ## Quick start (Docker Compose)
 
