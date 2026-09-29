@@ -23,8 +23,8 @@ export const families: ModelFamily[] = [
         error: null,
         history: {
           availabilityPoints: [
-            { datetime: "2026-09-25T14:30:00Z", available: "yes" },
-            { datetime: "2026-09-25T15:00:00Z", available: "yes" },
+            { datetime: "2026-09-25T14:30:00Z", available: "yes", latencyMs: 790, error: null },
+            { datetime: "2026-09-25T15:00:00Z", available: "yes", latencyMs: 812, error: null },
           ],
         },
       },
@@ -38,8 +38,8 @@ export const families: ModelFamily[] = [
         error: "Timeout after 30s",
         history: {
           availabilityPoints: [
-            { datetime: "2026-09-25T14:30:00Z", available: "no" },
-            { datetime: "2026-09-25T15:00:00Z", available: "no" },
+            { datetime: "2026-09-25T14:30:00Z", available: "no", latencyMs: null, error: "Timeout after 30s" },
+            { datetime: "2026-09-25T15:00:00Z", available: "no", latencyMs: null, error: "Timeout after 30s" },
           ],
         },
       },
@@ -77,7 +77,9 @@ export const families: ModelFamily[] = [
         lastChecked: "2026-09-25T15:00:00Z",
         latencyMs: 120,
         error: null,
-        history: { availabilityPoints: [{ datetime: "2026-09-25T15:00:00Z", available: "yes" }] },
+        history: {
+          availabilityPoints: [{ datetime: "2026-09-25T15:00:00Z", available: "yes", latencyMs: 120, error: null }],
+        },
       },
       {
         modelname: "model-b",
@@ -87,7 +89,9 @@ export const families: ModelFamily[] = [
         lastChecked: "2026-09-25T15:00:00Z",
         latencyMs: null,
         error: "down",
-        history: { availabilityPoints: [{ datetime: "2026-09-25T15:00:00Z", available: "no" }] },
+        history: {
+          availabilityPoints: [{ datetime: "2026-09-25T15:00:00Z", available: "no", latencyMs: null, error: "down" }],
+        },
       },
     ],
   },

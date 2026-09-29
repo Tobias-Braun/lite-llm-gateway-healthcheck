@@ -22,8 +22,19 @@ class AvailabilityPoint(ApiModel):
     available: Availability
 
 
-class ModelHistory(ApiModel):
+class ModelAvailabilityPoint(AvailabilityPoint):
+    """A model's own history point, additionally carrying that round's latency/error."""
+
+    latency_ms: int | None = None
+    error: str | None = None
+
+
+class FamilyHistory(ApiModel):
     availability_points: list[AvailabilityPoint]
+
+
+class ModelHistory(ApiModel):
+    availability_points: list[ModelAvailabilityPoint]
 
 
 class ModelStatus(ApiModel):
@@ -40,7 +51,7 @@ class ModelStatus(ApiModel):
 class FamilyStatus(ApiModel):
     title: str
     status: Availability
-    history: ModelHistory
+    history: FamilyHistory
     models: list[ModelStatus]
 
 
@@ -81,7 +92,13 @@ def get_families(settings: Settings) -> list[FamilyStatus]:
                 settings.database_path, family.title, model.modelname, settings.history_limit
             )
             model_points = [
-                AvailabilityPoint(datetime=at, available=_model_availability(ok)) for at, ok in model_rounds
+                ModelAvailabilityPoint(
+                    datetime=at,
+                    available=_model_availability(ok),
+                    latency_ms=latency_ms,
+                    error=error,
+                )
+                for at, ok, latency_ms, error in model_rounds
             ]
             models.append(
                 ModelStatus(
@@ -99,7 +116,7 @@ def get_families(settings: Settings) -> list[FamilyStatus]:
             FamilyStatus(
                 title=family.title,
                 status=points[-1].available if points else "unknown",
-                history=ModelHistory(availability_points=points),
+                history=FamilyHistory(availability_points=points),
                 models=models,
             )
         )
