@@ -49,6 +49,7 @@ def settings(tmp_path: Path) -> Settings:
         model_families=FAMILIES,
         database_path=tmp_path / "data" / "healthcheck.db",
         history_limit=3,
+        model_history_limit=3,
         request_interval_seconds=0,
     )
     db.init_db(s.database_path)

@@ -44,4 +44,5 @@ class Settings(BaseSettings):
     fake_data: bool = False
     database_path: Path = Path("data/healthcheck.db")
     history_limit: int = 50
+    model_history_limit: int = 24
     static_dir: Path | None = None

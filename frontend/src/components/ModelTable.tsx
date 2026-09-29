@@ -36,7 +36,9 @@ export function ModelTable({ models }: ModelTableProps) {
           <th>Company</th>
           <th>Latency</th>
           <th>Uptime</th>
-          <th>History</th>
+          <th title="Shows the model's own most recent rounds — a shorter, more recent window than the family timeline above">
+            History
+          </th>
         </tr>
       </thead>
       <tbody>
