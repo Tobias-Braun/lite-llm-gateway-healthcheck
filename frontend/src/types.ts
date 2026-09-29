@@ -33,3 +33,8 @@ export interface ModelFamily {
   history: ModelHistory;
   models: ModelDef[];
 }
+
+/** Mirrors the `GET /api/config` contract. */
+export interface AppConfig {
+  title: string;
+}
