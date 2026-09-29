@@ -1,14 +1,31 @@
 import { useEffect, useState } from "react";
-import { fetchFamilies } from "./api";
+import { fetchConfig, fetchFamilies } from "./api";
 import { Accordion } from "./components/Accordion";
 import type { ModelFamily } from "./types";
 
 export const REFRESH_INTERVAL_MS = 30_000;
+export const DEFAULT_TITLE = "Gateway Health Check";
 
 export function App() {
   const [families, setFamilies] = useState<ModelFamily[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  const [title, setTitle] = useState(DEFAULT_TITLE);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetchConfig(controller.signal)
+      .then((config) => {
+        setTitle(config.title);
+        document.title = config.title;
+      })
+      .catch(() => {
+        // Keep the default title; no blank header, no crash.
+      });
+
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -39,7 +56,7 @@ export function App() {
   return (
     <main className="app">
       <header className="app-header">
-        <h1>Gateway Health Check</h1>
+        <h1>{title}</h1>
         {updatedAt && <span className="muted">Updated {updatedAt.toLocaleTimeString()}</span>}
       </header>
       {error && (

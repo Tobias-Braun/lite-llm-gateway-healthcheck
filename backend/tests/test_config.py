@@ -37,3 +37,16 @@ def test_fake_data_is_read_from_env(monkeypatch) -> None:
     monkeypatch.setenv("FAKE_DATA", "true")
 
     assert Settings(_env_file=None).fake_data is True
+
+
+def test_app_title_defaults_to_gateway_health_check(monkeypatch) -> None:
+    monkeypatch.setenv("MODEL_FAMILIES", "[]")
+
+    assert Settings(_env_file=None).app_title == "Gateway Health Check"
+
+
+def test_app_title_is_read_from_env(monkeypatch) -> None:
+    monkeypatch.setenv("MODEL_FAMILIES", "[]")
+    monkeypatch.setenv("APP_TITLE", "Acme Gateway")
+
+    assert Settings(_env_file=None).app_title == "Acme Gateway"
