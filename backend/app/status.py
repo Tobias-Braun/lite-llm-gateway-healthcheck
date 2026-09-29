@@ -89,7 +89,7 @@ def get_families(settings: Settings) -> list[FamilyStatus]:
         for model in family.models:
             result = latest.get(model.modelname)
             model_rounds = db.model_recent_rounds(
-                settings.database_path, family.title, model.modelname, settings.history_limit
+                settings.database_path, family.title, model.modelname, settings.model_history_limit
             )
             model_points = [
                 ModelAvailabilityPoint(
