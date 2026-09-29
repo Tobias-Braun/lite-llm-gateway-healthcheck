@@ -43,13 +43,14 @@ This rule produces both the family's `status` field (the latest round) and every
   - `modelname`, `provider`, `company`: as configured.
   - `status`: the model's own latest availability (`yes` / `no` / `unknown`).
   - `lastChecked`, `latencyMs`, `error`: from the model's latest check, or `null` if none yet.
-  - `history.availabilityPoints`: the model's own last `history_limit` rounds, oldest first, in
-    the same shape as the family's history — independent of the other models in the family. Each
-    point additionally carries `latencyMs`/`error` from that round's stored check result for this
-    model: present (one of them non-null) when the round has a result, `null`/absent when the
-    point's `available` is `unknown`. Family-level `history.availabilityPoints` keep the plain
-    `{ datetime, available }` shape — a family round aggregates several models, so a single
-    latency or error wouldn't mean anything there.
+  - `history.availabilityPoints`: the model's own last `model_history_limit` rounds, oldest
+    first, in the same shape as the family's history — independent of the other models in the
+    family, and of the family's own `history_limit` window. Each point additionally carries
+    `latencyMs`/`error` from that round's stored check result for this model: present (one of
+    them non-null) when the round has a result, `null`/absent when the point's `available` is
+    `unknown`. Family-level `history.availabilityPoints` keep the plain `{ datetime, available }`
+    shape — a family round aggregates several models, so a single latency or error wouldn't mean
+    anything there.
 
 ## Dashboard rendering
 
@@ -57,7 +58,10 @@ This rule produces both the family's `status` field (the latest round) and every
   `history`, as today. Its tooltips (status dot and timeline segments) show only time and status,
   never latency or error — a family round aggregates several models.
 - Each row of the model table additionally shows a small availability timeline, in the same style
-  as the family's timeline, driven by that model's own `history`.
+  as the family's timeline, driven by that model's own `history`. Because `model_history_limit`
+  differs from the family's `history_limit`, the model table carries a visible note (e.g. a
+  tooltip on the timeline column's header) that this timeline covers a different, more recent
+  time window than the family timeline above it, so the two aren't read as the same range.
 - `partial` gets its own color, distinct from the existing `yes` (green), `no` (red) and `unknown`
   (gray): a yellow status dot and timeline segment, wherever a `partial` status can appear (today,
   only the family panel head and the family timeline).
