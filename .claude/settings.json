@@ -6,6 +6,7 @@
       "Bash(git *)",
       "Bash(gh *)",
       "Bash(jq *)",
+      "Bash(gh *)",
       "Edit(./**)"
     ],
     "deny": [

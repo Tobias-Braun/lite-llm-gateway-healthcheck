@@ -119,14 +119,14 @@ def recent_rounds(path: Path, family: str, models: list[str], limit: int) -> lis
     return [(row["round_at"], row["succeeded"], row["total"]) for row in reversed(rows)]
 
 
-def model_recent_rounds(path: Path, family: str, model: str, limit: int) -> list[tuple[str, bool]]:
-    """Return `(round_at, success)` for the last `limit` rounds of a single model, oldest first."""
+def model_recent_rounds(path: Path, family: str, model: str, limit: int) -> list[tuple[str, bool, int | None, str | None]]:
+    """Return `(round_at, success, latency_ms, error)` for the last `limit` rounds of a model, oldest first."""
     if limit <= 0:
         return []
     with closing(connect(path)) as conn:
         rows = conn.execute(
-            "SELECT round_at, success FROM checks WHERE family = ? AND model = ?"
+            "SELECT round_at, success, latency_ms, error FROM checks WHERE family = ? AND model = ?"
             " ORDER BY round_at DESC, id DESC LIMIT ?",
             [family, model, limit],
         ).fetchall()
-    return [(row["round_at"], bool(row["success"])) for row in reversed(rows)]
+    return [(row["round_at"], bool(row["success"]), row["latency_ms"], row["error"]) for row in reversed(rows)]

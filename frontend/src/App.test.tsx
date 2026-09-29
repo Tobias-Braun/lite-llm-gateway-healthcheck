@@ -36,14 +36,19 @@ describe("Accordion", () => {
     expect(tables).toHaveLength(2);
 
     const rows = within(tables[0]).getAllByRole("row");
-    expect(rows[0]).toHaveTextContent("NameProviderCompanyHistory");
-    expect(rows[1]).toHaveTextContent("claude-sonnet-5GoogleAnthropic");
+    expect(rows[0]).toHaveTextContent("NameProviderCompanyLatencyUptimeHistory");
+    expect(rows[1]).toHaveTextContent("claude-sonnet-5GoogleAnthropic812 ms100%");
+    expect(rows[2]).toHaveTextContent("claude-opus-5GoogleAnthropic—0%");
     expect(within(rows[2]).getByRole("img")).toHaveAttribute("title", "Timeout after 30s");
 
     // Each model row also gets its own small timeline, driven by that model's own history.
-    const modelSegments = within(rows[2]).getAllByTitle(/unavailable$/);
+    const modelSegments = rows[2].querySelectorAll(".timeline-segment");
     expect(modelSegments).toHaveLength(2);
     expect(modelSegments[0]).toHaveClass("timeline-segment", "status-no");
+    // History-cell tooltips are enriched with latency (yes) or error (no); family ones are not.
+    expect(modelSegments[0].getAttribute("title")).toContain("Timeout after 30s");
+    const successSegments = rows[1].querySelectorAll(".timeline-segment");
+    expect(successSegments[0].getAttribute("title")).toMatch(/790 ms$/);
   });
 });
 
