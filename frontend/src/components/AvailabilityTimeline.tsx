@@ -19,14 +19,14 @@ function pointTooltip(point: AvailabilityPoint): string {
   return base;
 }
 
-/** One colored segment per check (oldest left), with the datetime and state as native tooltip. */
+/** One colored segment per check (oldest left), with the datetime and state as a styled tooltip. */
 export function AvailabilityTimeline({ points, small }: AvailabilityTimelineProps) {
   const className = `timeline${small ? " timeline-small" : ""}`;
 
   if (points.length === 0) {
     return (
       <div className={className} aria-label="No availability history yet">
-        <span className="timeline-segment status-unknown timeline-empty" title="No checks yet" />
+        <span className="timeline-segment status-unknown timeline-empty" data-tooltip="No checks yet" />
       </div>
     );
   }
@@ -37,7 +37,7 @@ export function AvailabilityTimeline({ points, small }: AvailabilityTimelineProp
         <span
           key={point.datetime}
           className={`timeline-segment status-${point.available}`}
-          title={pointTooltip(point)}
+          data-tooltip={pointTooltip(point)}
         />
       ))}
     </div>
