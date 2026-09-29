@@ -37,6 +37,8 @@ describe("Accordion", () => {
 
     const rows = within(tables[0]).getAllByRole("row");
     expect(rows[0]).toHaveTextContent("NameProviderCompanyLatencyUptimeHistory");
+    // The History header carries a note that its window differs from the family timeline above.
+    expect(within(rows[0]).getByText("History")).toHaveAttribute("title", expect.stringMatching(/window/));
     expect(rows[1]).toHaveTextContent("claude-sonnet-5GoogleAnthropic812 ms100%");
     expect(rows[2]).toHaveTextContent("claude-opus-5GoogleAnthropic—0%");
     expect(within(rows[2]).getByRole("img")).toHaveAttribute("data-tooltip", "Timeout after 30s");

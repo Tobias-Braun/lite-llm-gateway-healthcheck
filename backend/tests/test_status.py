@@ -63,6 +63,28 @@ def test_family_is_no_only_when_every_model_fails(settings: Settings) -> None:
     assert [p.available for p in claude.history.availability_points] == ["no"]
 
 
+def test_model_history_window_is_independent_of_family_history_limit(settings: Settings) -> None:
+    # model_history_limit (2) is narrower than history_limit (3): the model's own window drops
+    # an extra round that the family timeline still keeps.
+    narrow = settings.model_copy(update={"model_history_limit": 2})
+    all_ok = {("Claude", "claude-sonnet-5"): True, ("Claude", "claude-opus-5"): True, ("GPT", "gpt-5"): True}
+    one_down = {**all_ok, ("Claude", "claude-opus-5"): False}
+    _round(narrow, "r1", "2026-09-25T15:00:00Z", all_ok)
+    _round(narrow, "r2", "2026-09-25T15:05:00Z", one_down)
+    _round(narrow, "r3", "2026-09-25T15:10:00Z", all_ok)
+
+    claude = get_families(narrow)[0]
+
+    assert [p.datetime for p in claude.history.availability_points] == [
+        "2026-09-25T15:00:00Z",
+        "2026-09-25T15:05:00Z",
+        "2026-09-25T15:10:00Z",
+    ]
+    assert [p.available for p in claude.models[1].history.availability_points] == ["no", "yes"]
+    # Uptime is computed over the model's own (now 2-round) window: 1 of 2 rounds succeeded.
+    assert len(claude.models[1].history.availability_points) == 2
+
+
 def test_removed_models_are_ignored(settings: Settings) -> None:
     _round(
         settings,
