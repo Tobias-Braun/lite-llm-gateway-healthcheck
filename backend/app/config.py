@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     request_timeout_seconds: float = 30
     request_interval_seconds: float = 2
     fake_data: bool = False
+    app_title: str = "Gateway Health Check"
     database_path: Path = Path("data/healthcheck.db")
     history_limit: int = 50
     model_history_limit: int = 24

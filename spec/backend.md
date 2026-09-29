@@ -37,6 +37,18 @@ requests within a round is paced by `request_interval_seconds`:
 | `healthcheck_prompt` | `HEALTHCHECK_PROMPT` | `Reply with OK.` | Prompt sent to every model. |
 | `fake_data` | `FAKE_DATA` | `false` | Dev mode: generate synthetic results instead of calling the gateway (see below). |
 | `model_history_limit` | `MODEL_HISTORY_LIMIT` | `24` | Number of most recent check rounds returned in a model's own `history.availabilityPoints` (see `spec/api-families.md`), independent of the family's own history window. |
+| `app_title` | `APP_TITLE` | `Gateway Health Check` | Display name for the dashboard and API docs (see below). |
+
+## App title
+
+`app_title` names the deployment, for orgs that want their own label instead of the default
+"Gateway Health Check":
+
+- The FastAPI app is constructed with `title=app_title`, which also renames the `/docs` page.
+- `GET /api/config` returns `{"title": "<app_title>"}`.
+- On load, the frontend fetches `/api/config` and renders the returned title in the page's `<h1>`
+  and `document.title`. Until that fetch resolves, and if it fails, both fall back to the same
+  default (`"Gateway Health Check"`) — never a blank header, never a crash.
 
 ## Fake data mode
 

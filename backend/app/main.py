@@ -46,11 +46,15 @@ def create_app(settings: Settings, run_checks: bool = True) -> FastAPI:
                 with contextlib.suppress(asyncio.CancelledError):
                     await task
 
-    app = FastAPI(title="LiteLLM Gateway Health Check", lifespan=lifespan)
+    app = FastAPI(title=settings.app_title, lifespan=lifespan)
 
     @app.get("/api/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    @app.get("/api/config")
+    def config() -> dict[str, str]:
+        return {"title": settings.app_title}
 
     @app.get("/api/families", response_model=list[FamilyStatus])
     def families() -> list[FamilyStatus]:
