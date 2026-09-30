@@ -18,6 +18,11 @@ sends a tiny health-check prompt to every chat model of the gateway, stores the 
 SQLite and shows availability and latency per model family in a small React dashboard.
 Latency is also aggregated by hour of day and day of week, so quiet and busy windows stand out.
 
+<p align="center">
+  <img src=".github/assets/dashboard.png" alt="Dashboard with latency overview and per-family availability" width="640">
+  <br><em>The dashboard with synthetic data (<code>FAKE_DATA=true</code>).</em>
+</p>
+
 ## Features
 
 - **Cheap to run:** each check is a one-line prompt ("Reply with OK."), so a month of checks

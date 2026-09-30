@@ -62,3 +62,9 @@ Adds a Docker Compose quick start:
 
 Configuration is documented via a table, or a link to the existing `.env.example` comments —
 not duplicated in full.
+
+The About section shows `.github/assets/dashboard.png`: a light-theme screenshot of the dashboard
+(one family panel open) taken from a local run with `FAKE_DATA=true`, a fresh database, no `.env`
+and the default `APP_TITLE`, so it only contains synthetic data. `CHECK_INTERVAL_SECONDS=3600`
+spreads the backfilled rounds over two days, which fills the latency charts. Retake it the same
+way after visible UI changes.
