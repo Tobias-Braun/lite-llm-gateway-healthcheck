@@ -57,14 +57,19 @@ body {
   background-color: var(--bg);
   background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
   background-size: 22px 22px;
+  /* Hidden tooltip bubbles would otherwise widen the page; clipping here (not on `.app`) lets visible ones overhang the container. */
+  overflow-x: clip;
+}
+
+/* Non-visible root overflow keeps `body`'s clip from propagating to the viewport, where it would be ignored. */
+html {
+  overflow-x: clip;
 }
 
 .app {
   max-width: 1040px;
   margin: 0 auto;
   padding: 32px 20px 48px;
-  /* Hidden tooltip bubbles of right-edge timeline segments would otherwise widen the page. */
-  overflow-x: clip;
 }
 
 .app-header {
@@ -619,8 +624,22 @@ body {
   font-size: 0.75rem;
   font-weight: normal;
   line-height: 1.3;
-  white-space: nowrap;
+  width: max-content;
+  max-width: min(360px, 80vw);
+  white-space: normal;
+  overflow-wrap: anywhere;
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.3);
+}
+
+/* Anchored at the segment's left or right edge instead of centered (see `AvailabilityTimeline`). */
+.tooltip-start::after {
+  transform: translate(0, 4px);
+}
+
+.tooltip-end::after {
+  left: auto;
+  right: 0;
+  transform: translate(0, 4px);
 }
 
 [data-tooltip]::before {
@@ -637,6 +656,38 @@ body {
 [data-tooltip]:focus-visible::before {
   opacity: 1;
   transform: translate(-50%, 0);
+}
+
+.tooltip-start:is(:hover, :focus-visible)::after,
+.tooltip-end:is(:hover, :focus-visible)::after {
+  transform: translate(0, 0);
+}
+
+/*
+ * The table's History column is too narrow to anchor at a segment, so its bubbles align to the
+ * timeline's right end instead and grow leftwards over the table. The arrow is dropped, since it
+ * could no longer point at the hovered segment; the segment's own hover highlight marks it.
+ */
+.timeline-small {
+  position: relative;
+}
+
+.timeline-small [data-tooltip] {
+  position: static;
+}
+
+.timeline-small [data-tooltip]::after {
+  left: auto;
+  right: 0;
+  transform: translate(0, 4px);
+}
+
+.timeline-small [data-tooltip]:is(:hover, :focus-visible)::after {
+  transform: translate(0, 0);
+}
+
+.timeline-small [data-tooltip]::before {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
