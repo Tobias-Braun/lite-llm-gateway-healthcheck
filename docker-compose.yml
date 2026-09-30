@@ -2,6 +2,9 @@ services:
   app:
     build: .
     env_file: .env
+    environment:
+      # Overrides a relative DATABASE_PATH from .env, which would put the database outside the volume.
+      DATABASE_PATH: /data/healthcheck.db
     ports:
       - "8000:8000"
     volumes:
