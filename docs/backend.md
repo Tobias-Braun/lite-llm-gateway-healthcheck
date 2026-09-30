@@ -1,12 +1,41 @@
 # Health-check rounds
 
-How the backend checks configured models and paces gateway requests.
+How the backend obtains its model list, checks those models and paces gateway requests.
+
+## Model list
+
+The models to check are not configured; they come from the gateway's LiteLLM `GET /model/info`
+(at the root of `gateway_url`, i.e. without its `/v1` suffix, authenticated with `api_key`) and are
+stored in the `models` table:
+
+- **When**: once on startup, before the first check round, and then once a day at a random
+  moment within `[model_refresh_start_hour, model_refresh_end_hour)` in `model_refresh_timezone`
+  (an end hour at or before the start hour spans midnight). A window that has already started
+  when the schedule is computed is skipped until the next day.
+- **Chat models only**: entries whose `model_info.mode` is `chat` or absent. Several deployments
+  of one `model_name` collapse into one model.
+- **Outdated variants dropped**: names are split into prefix, version and suffix (e.g.
+  `gpt-5.6-terra` → `gpt`, `5.6`, `-terra`); per (prefix, suffix) only the highest version is
+  kept, so `gpt-5.4-luna` is dropped once `gpt-5.5-luna` exists. Names that don't parse (e.g.
+  `gpt-4o`, `o3-mini`) are always kept.
+- **Family, company, provider**: family and company are inferred from the name prefix
+  (`claude` → Claude/Anthropic, `gemini`/`gemma` → Gemini/Google, `gpt`/`o<digit>` → GPT/OpenAI,
+  a few open-weight prefixes → Open-weight / Sovereign, anything else → Other/Unknown). The
+  provider comes from the LiteLLM provider id (`azure` → Azure, `vertex_ai` → Google,
+  `bedrock` → AWS, others title-cased). Families are ordered as listed above, models within a
+  family newest (highest natural sort order) first.
+- **Inactive models**: a model that disappears from the gateway or becomes outdated is marked
+  inactive: it is no longer checked or shown, but its check history stays. It becomes active
+  again if it reappears.
+- **Failures**: if a fetch fails, the error is logged and the previously stored list stays in
+  use until the next scheduled refresh. With an empty database, there are no models to check
+  until the first successful fetch.
 
 ## Round behaviour
 
 On startup, and then every `check_interval_seconds`, the service runs one check round:
 
-- Every model of every configured family is checked: the `healthcheck_prompt` is sent to the
+- Every active model (see above) is checked: the `healthcheck_prompt` is sent to the
   gateway with a `request_timeout_seconds` timeout.
 - A failing or timed-out model is recorded as a failed check with its error message; it never
   aborts the round or blocks other models.
@@ -35,6 +64,9 @@ requests within a round is paced by `request_interval_seconds`:
 | `request_timeout_seconds` | `REQUEST_TIMEOUT_SECONDS` | `30` | Per-request timeout against the gateway. |
 | `request_interval_seconds` | `REQUEST_INTERVAL_SECONDS` | `2` | Minimum spacing, in seconds, between the start of two consecutive requests within a round (see above). |
 | `healthcheck_prompt` | `HEALTHCHECK_PROMPT` | `Reply with OK.` | Prompt sent to every model. |
+| `model_refresh_start_hour` | `MODEL_REFRESH_START_HOUR` | `5` | Start (inclusive, 0–23) of the daily model list refresh window (see above). |
+| `model_refresh_end_hour` | `MODEL_REFRESH_END_HOUR` | `7` | End (exclusive, 0–24) of the daily model list refresh window. |
+| `model_refresh_timezone` | `MODEL_REFRESH_TIMEZONE` | `Europe/Berlin` | IANA timezone of the refresh window. |
 | `fake_data` | `FAKE_DATA` | `false` | Dev mode: generate synthetic results instead of calling the gateway (see below). |
 | `model_history_limit` | `MODEL_HISTORY_LIMIT` | `24` | Number of most recent check rounds returned in a model's own `history.availabilityPoints` (see `docs/api-families.md`), independent of the family's own history window. |
 | `app_title` | `APP_TITLE` | `Gateway Health Check` | Display name for the dashboard and API docs (see below). |
@@ -52,14 +84,15 @@ requests within a round is paced by `request_interval_seconds`:
 
 ## Fake data mode
 
-With `fake_data` on, the service never calls the gateway — `gateway_url` and `api_key` stay
+With `fake_data` on, the service never calls the gateway, neither for checks nor for the model
+list: a built-in synthetic model list is stored instead of fetching `/model/info` — `gateway_url` and `api_key` stay
 required settings but go unused — so the dashboard can be tried without a real gateway or API
 key.
 
 ### Synthetic rounds
 
 Each round (startup and every `check_interval_seconds`, same as normal mode) still produces one
-shared `round_id`/timestamp result per model of every configured family, but each model's result
+shared `round_id`/timestamp result per active model, but each model's result
 is generated instead of requested from the gateway.
 
 Every model is deterministically assigned one of two reliability tiers, from a stable hash of
@@ -83,7 +116,7 @@ no HTTP requests are made.
 
 ### Startup backfill
 
-On startup, before the first round runs, each currently configured model that has fewer than 48
+On startup, before the first round runs, each active model that has fewer than 48
 stored rounds is backfilled with synthetic rounds so its history starts populated instead of
 empty:
 

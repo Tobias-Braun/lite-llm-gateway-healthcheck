@@ -1,4 +1,4 @@
-"""Periodic health checks of all configured models through the gateway."""
+"""Periodic health checks of all active models (see `app.models`) through the gateway."""
 
 import asyncio
 import hashlib
@@ -115,10 +115,11 @@ async def check_model(
 async def run_round(
     settings: Settings, client: AsyncOpenAI, fake_outage_state: FakeOutageState | None = None
 ) -> list[db.CheckResult]:
-    """Check all models of all families concurrently and store the results as one round."""
+    """Check all active models concurrently and store the results as one round."""
     round_id = uuid.uuid4().hex
     round_at = utc_now_iso()
-    targets = [(family.title, model.modelname) for family in settings.model_families for model in family.models]
+    families = await asyncio.to_thread(db.active_models, settings.database_path)
+    targets = [(family.title, model.modelname) for family in families for model in family.models]
     if settings.fake_data:
         outage_state = fake_outage_state if fake_outage_state is not None else {}
         outcomes = [fake_check_model(family, model, outage_state) for family, model in targets]
@@ -144,7 +145,7 @@ async def run_round(
 
 
 async def backfill_fake_history(settings: Settings, fake_outage_state: FakeOutageState | None = None) -> None:
-    """Top up every configured model with backdated synthetic rounds up to `FAKE_HISTORY_TARGET`.
+    """Top up every active model with backdated synthetic rounds up to `FAKE_HISTORY_TARGET`.
 
     A model already at or above the target is left alone. Backfilled rounds of different models
     that land on the same timestamp share one `round_id`, the same as a normal round. Rounds are
@@ -156,7 +157,7 @@ async def backfill_fake_history(settings: Settings, fake_outage_state: FakeOutag
     interval = timedelta(seconds=settings.check_interval_seconds)
     round_ids: dict[str, str] = {}
     results: list[db.CheckResult] = []
-    for family in settings.model_families:
+    for family in await asyncio.to_thread(db.active_models, settings.database_path):
         for model in family.models:
             count, oldest_at = await asyncio.to_thread(
                 db.model_history_bounds, settings.database_path, family.title, model.modelname

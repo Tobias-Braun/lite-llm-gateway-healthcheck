@@ -17,15 +17,16 @@ models.
 
 ## Family aggregation
 
-For a given round, only the currently configured models of the family count (a model removed from
-the configuration no longer affects the family's history). Given the results of those models in a
+Families and models come from the stored model list (see `docs/backend.md`, "Model list"); only
+its active models are returned. For a given round, only the active models of the family count (a
+model that became inactive no longer affects the family's history). Given the results of those models in a
 round:
 
 | Results | Family availability for that round |
 |---|---|
-| No configured model has a result | `unknown` |
-| Every configured model succeeded | `yes` |
-| Every configured model failed | `no` |
+| No active model has a result | `unknown` |
+| Every active model succeeded | `yes` |
+| Every active model failed | `no` |
 | Some succeeded, some failed | `partial` |
 
 This rule produces both the family's `status` field (the latest round) and every point of
@@ -40,7 +41,7 @@ This rule produces both the family's `status` field (the latest round) and every
 - `history.availabilityPoints`: the family's last `history_limit` rounds, oldest first, each an
   `{ datetime, available }` pair.
 - `models`: the family's models, each with:
-  - `modelname`, `provider`, `company`: as configured.
+  - `modelname`, `provider`, `company`: from the stored model list.
   - `status`: the model's own latest availability (`yes` / `no` / `unknown`).
   - `lastChecked`, `latencyMs`, `error`: from the model's latest check, or `null` if none yet.
   - `history.availabilityPoints`: the model's own last `model_history_limit` rounds, oldest

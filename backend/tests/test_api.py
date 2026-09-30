@@ -4,10 +4,10 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from app import checker
-from app.config import Settings
+from app import checker, db, models
+from app.config import ModelFamily, Settings
 from app.main import create_app
-from tests.conftest import mock_client
+from tests.conftest import FAMILIES, mock_client
 
 
 def test_health(settings: Settings) -> None:
@@ -28,8 +28,10 @@ def test_config_returns_app_title(settings: Settings) -> None:
 
 def test_families_response_shape(settings: Settings) -> None:
     # Check all but the last family, which must then show up as never checked.
-    checked = settings.model_copy(update={"model_families": settings.model_families[:-1]})
-    asyncio.run(checker.run_round(checked, mock_client(failing={"gpt-5"})))
+    families = [ModelFamily.model_validate(family) for family in FAMILIES]
+    db.replace_models(settings.database_path, families[:-1])
+    asyncio.run(checker.run_round(settings, mock_client(failing={"gpt-5"})))
+    db.replace_models(settings.database_path, families)
 
     with TestClient(create_app(settings, run_checks=False)) as client:
         response = client.get("/api/families")
@@ -112,9 +114,15 @@ def test_static_dir_is_served_with_spa_fallback(settings: Settings, tmp_path: Pa
         assert client.get("/api/health").json() == {"status": "ok"}
 
 
-def test_background_checker_runs_a_round_on_startup(settings: Settings, monkeypatch) -> None:
+def test_background_checker_fetches_models_before_the_first_round(settings: Settings, monkeypatch) -> None:
     fake = mock_client()
     monkeypatch.setattr(checker, "create_client", lambda _: fake)
+    fetched = [ModelFamily.model_validate(FAMILIES[1])]
+
+    async def fetch(_settings: Settings) -> list[ModelFamily]:
+        return fetched
+
+    monkeypatch.setattr(models, "fetch_models", fetch)
 
     with TestClient(create_app(settings)) as client:
         for _ in range(100):
@@ -123,5 +131,8 @@ def test_background_checker_runs_a_round_on_startup(settings: Settings, monkeypa
             time.sleep(0.01)
         families = client.get("/api/families").json()
 
+    # Only the fetched list is checked and shown; the seeded families became inactive.
+    assert [family["title"] for family in families] == ["GPT"]
     assert families[0]["status"] == "yes"
+    assert [call.kwargs["model"] for call in fake.chat.completions.create.await_args_list] == ["gpt-5"]
     fake.close.assert_awaited_once()
