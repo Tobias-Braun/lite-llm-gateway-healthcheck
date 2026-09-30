@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { REFRESH_INTERVAL_MS, fetchConfig, fetchFamilies } from "./api";
+import logo from "./assets/logo.svg";
 import { Accordion } from "./components/Accordion";
 import { LatencyPanel } from "./components/LatencyPanel";
 import { ThemeToggle } from "./components/ThemeToggle";
@@ -58,9 +59,7 @@ export function App() {
     <main className="app">
       <header className="app-header">
         <h1>
-          <span className="prompt" aria-hidden="true">
-            &gt;_
-          </span>
+          <img className="logo" src={logo} alt="" />
           {title}
         </h1>
         <div className="header-meta">
