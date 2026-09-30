@@ -10,7 +10,7 @@ interface ModelTableProps {
   models: ModelDef[];
 }
 
-const COLUMNS = 6;
+const COLUMNS = 5;
 
 /** Builds the per-model tooltip: the error for failed checks, otherwise status, latency and check time. */
 function modelTooltip(model: ModelDef): string {
@@ -50,7 +50,6 @@ export function ModelTable({ family, models }: ModelTableProps) {
       <thead>
         <tr>
           <th>Name</th>
-          <th>Provider</th>
           <th>Company</th>
           <th>Latency</th>
           <th>Uptime</th>
@@ -76,7 +75,6 @@ export function ModelTable({ family, models }: ModelTableProps) {
                     <span className="model-name">{model.modelname}</span>
                   </button>
                 </td>
-                <td>{model.provider}</td>
                 <td>{model.company}</td>
                 <td>{formatLatency(model)}</td>
                 <td>{formatUptime(model.history.availabilityPoints)}</td>

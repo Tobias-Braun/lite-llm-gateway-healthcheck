@@ -1,57 +1,50 @@
+/*
+ * Every color token is defined once via light-dark(<light>, <dark>). The theme follows the system
+ * (`color-scheme: light dark`) until the toggle pins it through `data-theme` on <html>.
+ */
 :root {
-  --bg: #f6f7f9;
-  --surface: #ffffff;
-  --border: #dde1e6;
-  --text: #1c2128;
-  --muted: #6a737d;
-  --hover: #f0f2f5;
-  --accent: #3b5bdb;
-  --yes: #2da44e;
-  --no: #d1242f;
-  --partial: #bf8700;
-  --unknown: #a0a7b0;
-  --error-bg: #ffebe9;
-  --latency: #8250df;
-  /* Overview lines, one per family; the first matches the single-series latency purple. */
-  --series-1: #8250df;
-  --series-2: #1b7c83;
-  --series-3: #bc4c00;
-  --series-4: #0969da;
-  --series-5: #bf3989;
-  --series-6: #4d7c0f;
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 1px rgba(15, 23, 42, 0.04);
-  --shadow-lg: 0 12px 28px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.06);
+  color-scheme: light dark;
+
+  --bg: light-dark(#f3f6fa, #070b12);
+  --grid-dot: light-dark(#dde4ee, #121b29);
+  --surface: light-dark(#ffffff, #0c131e);
+  --border: light-dark(#d5dde8, #1c2738);
+  --text: light-dark(#0f172a, #d7e2f0);
+  --muted: light-dark(#5b6b82, #7d8ca3);
+  --hover: light-dark(#eef3f8, #111b2a);
+  --accent: light-dark(#0891b2, #22d3ee);
+  --yes: light-dark(#059669, #34d399);
+  --no: light-dark(#e11d48, #fb7185);
+  --partial: light-dark(#d97706, #fbbf24);
+  --unknown: light-dark(#94a3b8, #475569);
+  --error-bg: light-dark(#ffe4e9, #2a0f17);
+  --latency: var(--accent);
+  /* Overview lines, one per family; the first matches the single-series latency color. */
+  --series-1: var(--accent);
+  --series-2: light-dark(#7c3aed, #a78bfa);
+  --series-3: light-dark(#ea580c, #fb923c);
+  --series-4: light-dark(#2563eb, #60a5fa);
+  --series-5: light-dark(#db2777, #f472b6);
+  --series-6: light-dark(#65a30d, #a3e635);
+  --tooltip-bg: light-dark(#0f172a, #111a29);
+  --tooltip-text: #e2e8f0;
+  --shadow-sm: 0 1px 2px light-dark(rgb(15 23 42 / 0.06), rgb(0 0 0 / 0.4));
+  --glow-accent: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent),
+    0 0 24px -6px color-mix(in srgb, var(--accent) 45%, transparent);
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace;
 
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color: var(--text);
   background: var(--bg);
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0d1117;
-    --surface: #161b22;
-    --border: #30363d;
-    --text: #e6edf3;
-    --muted: #8b949e;
-    --hover: #1f2630;
-    --accent: #7c9dff;
-    --yes: #3fb950;
-    --no: #f85149;
-    --partial: #d29922;
-    --unknown: #6e7681;
-    --error-bg: #3d1417;
-    --latency: #a371f7;
-    --series-1: #a371f7;
-    --series-2: #39c5cf;
-    --series-3: #f0883e;
-    --series-4: #58a6ff;
-    --series-5: #db61a2;
-    --series-6: #8ddb5c;
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
-    --shadow-lg: 0 14px 32px rgba(0, 0, 0, 0.55);
-  }
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 * {
@@ -60,22 +53,28 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  min-height: 100vh;
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
+  background-size: 22px 22px;
 }
 
 .app {
-  max-width: 960px;
+  max-width: 1040px;
   margin: 0 auto;
-  padding: 24px 16px;
+  padding: 32px 20px 48px;
+  /* Hidden tooltip bubbles of right-edge timeline segments would otherwise widen the page. */
+  overflow-x: clip;
 }
 
 .app-header {
   display: flex;
-  align-items: baseline;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
-  padding: 14px 20px;
+  gap: 12px 16px;
+  margin-bottom: 24px;
+  padding: 14px 16px 14px 20px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -84,18 +83,75 @@ body {
 
 .app-header h1 {
   margin: 0;
-  font-size: 1.5rem;
+  font-family: var(--mono);
+  font-size: 1.25rem;
+  letter-spacing: -0.01em;
+}
+
+.prompt {
+  margin-right: 10px;
   color: var(--accent);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-family: var(--mono);
+}
+
+.live-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--yes);
+  box-shadow: 0 0 8px var(--yes);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.icon-button:hover {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+  box-shadow: 0 0 14px -4px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.icon-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .muted {
   color: var(--muted);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
 }
 
 .banner {
-  padding: 8px 12px;
-  border-radius: 6px;
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--no) 35%, transparent);
+  border-radius: 8px;
 }
 
 .banner-error {
@@ -106,7 +162,7 @@ body {
 .accordion {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .panel {
@@ -114,25 +170,26 @@ body {
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
-.panel:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
+.panel:hover,
+.panel-open {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  box-shadow: var(--glow-accent);
 }
 
 .panel-heading {
-  margin: 0 0 8px;
+  margin: 0;
   font-size: 1rem;
 }
 
 .panel-head {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  padding: 12px 16px 8px;
+  padding: 14px 18px 12px;
   border: 0;
   border-radius: 10px 10px 0 0;
   background: none;
@@ -161,6 +218,7 @@ body {
 }
 
 .panel-count {
+  font-family: var(--mono);
   font-weight: normal;
 }
 
@@ -178,35 +236,38 @@ body {
   border-color: var(--accent);
 }
 
+/* Status classes only pick the color; dots and timeline segments paint and glow with it. */
+.status-yes {
+  --status: var(--yes);
+}
+
+.status-no {
+  --status: var(--no);
+}
+
+.status-partial {
+  --status: var(--partial);
+}
+
+.status-unknown {
+  --status: var(--unknown);
+}
+
 .status-dot {
   display: inline-block;
   flex-shrink: 0;
   width: 10px;
   height: 10px;
   border-radius: 50%;
-}
-
-.status-yes {
-  background: var(--yes);
-}
-
-.status-no {
-  background: var(--no);
-}
-
-.status-partial {
-  background: var(--partial);
-}
-
-.status-unknown {
-  background: var(--unknown);
+  background: var(--status);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--status) 65%, transparent);
 }
 
 .timeline {
   display: flex;
   gap: 2px;
   height: 20px;
-  padding: 0 16px 12px;
+  padding: 2px 18px 16px;
   box-sizing: content-box;
 }
 
@@ -218,13 +279,15 @@ body {
 .timeline-segment {
   flex: 1;
   min-width: 2px;
-  border-radius: 3px;
-  opacity: 0.82;
-  transition: opacity 0.15s ease;
+  border-radius: 2px;
+  background: var(--status);
+  opacity: 0.8;
+  transition: opacity 0.15s ease, box-shadow 0.15s ease;
 }
 
 .timeline-segment:hover {
   opacity: 1;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--status) 80%, transparent);
 }
 
 .timeline-empty {
@@ -233,34 +296,62 @@ body {
 
 .panel-content {
   border-top: 1px solid var(--border);
-  padding: 8px 16px 12px;
+  padding: 16px 18px 18px;
 }
 
-.model-table {
+/* On phones the model table is wider than the panel; let it scroll instead of being clipped. */
+@media (max-width: 640px) {
+  .panel-content {
+    overflow-x: auto;
+  }
+}
+
+.model-table,
+.latency-stats {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
 }
 
-.model-table th {
+.model-table th,
+.latency-stats th {
   text-align: left;
   color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.6875rem;
   font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .model-table th,
 .model-table td {
-  padding: 8px 10px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--border);
 }
 
-.model-table tr:last-child td {
+.latency-stats th,
+.latency-stats td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.model-table td,
+.latency-stats td {
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.model-table tr:last-child td,
+.latency-stats tr:last-child td {
   border-bottom: 0;
 }
 
 .model-name {
-  margin-left: 8px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  margin-left: 10px;
+  font-family: var(--mono);
 }
 
 .model-toggle {
@@ -274,8 +365,8 @@ body {
 
 .model-toggle:hover .model-name,
 .model-row-open .model-name {
-  color: var(--latency);
-  text-decoration: underline;
+  color: var(--accent);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 .model-toggle:focus-visible {
@@ -284,16 +375,22 @@ body {
 }
 
 .model-detail-row > td {
+  padding: 16px 16px 12px;
   background: var(--hover);
+  white-space: normal;
+}
+
+.model-detail .latency-title {
+  margin-bottom: 10px;
 }
 
 .model-detail .timeline {
-  padding: 0 0 12px;
+  padding: 0 0 18px;
 }
 
 .card {
-  margin-bottom: 20px;
-  padding: 14px 20px;
+  margin-bottom: 24px;
+  padding: 18px 20px 12px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -301,21 +398,26 @@ body {
 }
 
 .latency {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .latency-head {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 12px;
-  margin-bottom: 8px;
+  gap: 10px 12px;
+  margin-bottom: 12px;
 }
 
 .latency-title {
   flex: 1;
   margin: 0 0 6px;
-  font-size: 0.9375rem;
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .latency-head .latency-title {
@@ -331,22 +433,29 @@ body {
 
 .segmented button,
 .latency-head select {
-  padding: 4px 10px;
+  padding: 5px 11px;
   border: 0;
   background: var(--surface);
   color: var(--muted);
-  font: inherit;
-  font-size: 0.8125rem;
+  font-family: var(--mono);
+  font-size: 0.75rem;
   cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
 }
 
 .segmented button + button {
   border-left: 1px solid var(--border);
 }
 
+.segmented button:hover {
+  color: var(--text);
+}
+
 .segmented button[aria-pressed="true"] {
-  background: var(--latency);
-  color: #fff;
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  color: var(--accent);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--accent) 60%, transparent);
+  box-shadow: inset 0 -2px 0 var(--accent);
 }
 
 .latency-head select {
@@ -357,6 +466,7 @@ body {
 
 .latency-summary {
   margin: 4px 0 0;
+  font-family: var(--mono);
 }
 
 .chart {
@@ -365,10 +475,12 @@ body {
 
 .chart svg {
   display: block;
+  overflow: visible;
 }
 
 .chart-grid line {
   stroke: var(--border);
+  stroke-dasharray: 2 4;
 }
 
 .chart-grid path {
@@ -378,7 +490,8 @@ body {
 .chart-grid text,
 .chart-axis text {
   fill: var(--muted);
-  font-size: 11px;
+  font-family: var(--mono);
+  font-size: 10.5px;
 }
 
 .chart-axis path,
@@ -386,9 +499,16 @@ body {
   stroke: var(--border);
 }
 
+/* `--line` is set per series by the chart, so line and dots glow in their own color. */
 .chart-line {
   fill: none;
+  stroke: var(--line);
   stroke-width: 2;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--line) 55%, transparent));
+}
+
+.chart-dot {
+  fill: var(--line);
 }
 
 .chart-overlay {
@@ -396,7 +516,8 @@ body {
 }
 
 .chart-rule {
-  stroke: var(--muted);
+  stroke: var(--accent);
+  stroke-opacity: 0.6;
   stroke-dasharray: 3 3;
   pointer-events: none;
 }
@@ -405,14 +526,16 @@ body {
   position: absolute;
   top: 8px;
   z-index: 30;
-  padding: 5px 9px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
   border-radius: 6px;
-  background: var(--text);
-  color: var(--bg);
+  background: var(--tooltip-bg);
+  color: var(--tooltip-text);
+  font-family: var(--mono);
   font-size: 0.75rem;
-  line-height: 1.4;
+  line-height: 1.5;
   white-space: nowrap;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.3), 0 0 16px -4px color-mix(in srgb, var(--accent) 40%, transparent);
   pointer-events: none;
 }
 
@@ -420,31 +543,12 @@ body {
   display: inline-block;
   width: 8px;
   height: 8px;
-  margin-right: 6px;
+  margin-right: 8px;
   border-radius: 2px;
 }
 
 .latency-stats {
-  width: 100%;
-  margin-top: 8px;
-  border-collapse: collapse;
-  font-size: 0.875rem;
-}
-
-.latency-stats th {
-  text-align: left;
-  color: var(--muted);
-  font-weight: 600;
-}
-
-.latency-stats th,
-.latency-stats td {
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--border);
-}
-
-.latency-stats tr:last-child td {
-  border-bottom: 0;
+  margin-top: 12px;
 }
 
 /* Styled tooltip bubble, driven by `data-tooltip`, replacing the native `title` tooltip. */
@@ -467,14 +571,16 @@ body {
   bottom: calc(100% + 8px);
   transform: translate(-50%, 4px);
   padding: 5px 9px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
   border-radius: 6px;
-  background: var(--text);
-  color: var(--bg);
+  background: var(--tooltip-bg);
+  color: var(--tooltip-text);
+  font-family: var(--mono);
   font-size: 0.75rem;
   font-weight: normal;
   line-height: 1.3;
   white-space: nowrap;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.3);
 }
 
 [data-tooltip]::before {
@@ -482,7 +588,7 @@ body {
   bottom: calc(100% + 3px);
   transform: translate(-50%, 4px);
   border: 5px solid transparent;
-  border-top-color: var(--text);
+  border-top-color: var(--tooltip-bg);
 }
 
 [data-tooltip]:hover::after,

@@ -66,6 +66,8 @@ This rule produces both the family's `status` field (the latest round) and every
 - `partial` gets its own color, distinct from the existing `yes` (green), `no` (red) and `unknown`
   (gray): a yellow status dot and timeline segment, wherever a `partial` status can appear (today,
   only the family panel head and the family timeline).
+- The model table columns are Name, Company, Latency, Uptime and History. `provider` stays in the
+  API but isn't shown: it's only inferred from the LiteLLM provider id, not a reliable fact.
 - Each model row also shows two columns:
   - **Latency**: the model's latest check latency (its `latencyMs`), e.g. `120 ms`. Shows `—` if
     the model has no check yet or its latest check failed.
@@ -78,3 +80,6 @@ This rule produces both the family's `status` field (the latest round) and every
 - Hovering a model's history-timeline cell shows the same time and status as today, plus — only
   when that round has a result — the latency in ms for a `yes` round or the error text for a `no`
   round. `unknown` cells are unchanged (time and status only).
+- The header's right side has a light/dark theme toggle. Without a stored choice the theme follows
+  the system (`prefers-color-scheme`); a toggled choice is kept in `localStorage` (`theme`) and
+  applied by an inline script in `index.html` before first paint.

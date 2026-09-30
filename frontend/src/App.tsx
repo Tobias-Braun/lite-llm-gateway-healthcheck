@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { REFRESH_INTERVAL_MS, fetchConfig, fetchFamilies } from "./api";
 import { Accordion } from "./components/Accordion";
 import { LatencyPanel } from "./components/LatencyPanel";
+import { ThemeToggle } from "./components/ThemeToggle";
 import type { ModelFamily } from "./types";
 
 export const DEFAULT_TITLE = "Gateway Health Check";
@@ -56,8 +57,21 @@ export function App() {
   return (
     <main className="app">
       <header className="app-header">
-        <h1>{title}</h1>
-        {updatedAt && <span className="muted">Updated {updatedAt.toLocaleTimeString()}</span>}
+        <h1>
+          <span className="prompt" aria-hidden="true">
+            &gt;_
+          </span>
+          {title}
+        </h1>
+        <div className="header-meta">
+          {updatedAt && (
+            <span className="muted">
+              <span className="live-dot" aria-hidden="true" />
+              Updated {updatedAt.toLocaleTimeString()}
+            </span>
+          )}
+          <ThemeToggle />
+        </div>
       </header>
       {error && (
         <p className="banner banner-error" role="alert">

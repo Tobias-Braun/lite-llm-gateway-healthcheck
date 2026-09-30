@@ -44,11 +44,11 @@ describe("Accordion", () => {
     expect(tables).toHaveLength(2);
 
     const rows = within(tables[0]).getAllByRole("row");
-    expect(rows[0]).toHaveTextContent("NameProviderCompanyLatencyUptimeHistory");
+    expect(rows[0]).toHaveTextContent("NameCompanyLatencyUptimeHistory");
     // The History header carries a note that its window differs from the family timeline above.
     expect(within(rows[0]).getByText("History")).toHaveAttribute("title", expect.stringMatching(/window/));
-    expect(rows[1]).toHaveTextContent("claude-sonnet-5GoogleAnthropic812 ms100%");
-    expect(rows[2]).toHaveTextContent("claude-opus-5GoogleAnthropic—0%");
+    expect(rows[1]).toHaveTextContent("claude-sonnet-5Anthropic812 ms100%");
+    expect(rows[2]).toHaveTextContent("claude-opus-5Anthropic—0%");
     expect(within(rows[2]).getByRole("img")).toHaveAttribute("data-tooltip", "Timeout after 30s");
 
     // Each model row also gets its own small timeline, driven by that model's own history.
@@ -172,6 +172,22 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Gateway Health Check" })).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "Acme Gateway" })).toBeInTheDocument();
     expect(document.title).toBe("Acme Gateway");
+  });
+
+  it("toggles the theme from the header and remembers the choice", async () => {
+    stubFetch();
+    localStorage.removeItem("theme");
+
+    render(<App />);
+    // jsdom has no matchMedia, so the system theme resolves to light.
+    fireEvent.click(screen.getByRole("button", { name: "Switch to dark theme" }));
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(localStorage.getItem("theme")).toBe("dark");
+
+    fireEvent.click(screen.getByRole("button", { name: "Switch to light theme" }));
+    expect(document.documentElement.dataset.theme).toBe("light");
+    expect(localStorage.getItem("theme")).toBe("light");
+    await screen.findByText("Claude");
   });
 
   it("falls back to the default title when the config fetch fails", async () => {
