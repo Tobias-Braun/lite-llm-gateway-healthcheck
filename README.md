@@ -51,6 +51,8 @@ Endpoints:
 
 - `GET /api/families` – status, availability history (one point per round, oldest first) and
   per-model results for every family of the current model list
+- `GET /api/latency` – live or aggregated (hour of day, day of week, day of month) latency per
+  family, model or across all families (see [docs/api-latency.md](docs/api-latency.md))
 - `GET /api/health` – liveness probe, returns `{"status": "ok"}`
 - `/` – the built frontend, if `STATIC_DIR` points to an existing directory
 
@@ -63,9 +65,10 @@ cd backend
 
 ## Frontend
 
-The dashboard in `frontend/` is a Vite + React + TypeScript app without a UI library. It fetches
-`/api/families` on load and every 30 seconds and shows one accordion panel per model family, with
-the availability timeline directly below each title.
+The dashboard in `frontend/` is a Vite + React + TypeScript app without a UI library (charts use
+d3). It fetches `/api/families` on load and every 30 seconds and shows one accordion panel per
+model family, with the availability timeline directly below each title. A latency overview sits
+above the families; open panels and expanded model rows show their own latency charts.
 
 ```sh
 cd frontend

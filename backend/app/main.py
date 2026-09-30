@@ -5,8 +5,10 @@ import contextlib
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Annotated
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from starlette.exceptions import HTTPException
 from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
@@ -14,6 +16,7 @@ from starlette.types import Scope
 
 from app import checker, db, models
 from app.config import Settings
+from app.latency import LatencyResponse, NotFoundError, Span, get_latency
 from app.status import FamilyStatus, get_families
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -64,6 +67,25 @@ def create_app(settings: Settings, run_checks: bool = True) -> FastAPI:
     @app.get("/api/families", response_model=list[FamilyStatus])
     def families() -> list[FamilyStatus]:
         return get_families(settings)
+
+    @app.get("/api/latency", response_model=LatencyResponse)
+    def latency(
+        span: Span = "live",
+        days: Annotated[int, Query(ge=1, le=365)] = 30,
+        tz: str = "UTC",
+        family: str | None = None,
+        model: str | None = None,
+    ) -> LatencyResponse:
+        if model is not None and family is None:
+            raise HTTPException(422, "`model` requires `family`")
+        try:
+            zone = ZoneInfo(tz)
+        except (ZoneInfoNotFoundError, ValueError) as exc:
+            raise HTTPException(422, f"Unknown time zone: {tz}") from exc
+        try:
+            return get_latency(settings, span, days, zone, family, model)
+        except NotFoundError as exc:
+            raise HTTPException(404, str(exc)) from exc
 
     # Mounted last so the API routes above take precedence over the catch-all static mount.
     if settings.static_dir and settings.static_dir.is_dir():

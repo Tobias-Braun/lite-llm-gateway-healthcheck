@@ -34,6 +34,43 @@ export interface ModelFamily {
   models: ModelDef[];
 }
 
+/** `GET /api/latency` span: live rounds, or an aggregate by local hour of day, weekday or day of month. */
+export type LatencySpan = "live" | "hour" | "weekday" | "monthday";
+
+export interface LatencyPoint extends AvailabilityPoint {
+  latencyMs: number | null;
+}
+
+export interface LatencyBucket {
+  /** Hour 0–23, weekday 0–6 (Monday = 0) or day of month 1–31. */
+  bucket: number;
+  avgMs: number | null;
+  p95Ms: number | null;
+  count: number;
+}
+
+export interface LatencySummary {
+  avgMs: number | null;
+  p95Ms: number | null;
+  count: number;
+}
+
+export interface LatencySeries {
+  family: string;
+  model: string | null;
+  /** Set for the live span, oldest first. */
+  points: LatencyPoint[] | null;
+  /** Set for aggregate spans, one per bucket of the span. */
+  buckets: LatencyBucket[] | null;
+  summary: LatencySummary;
+}
+
+/** Mirrors the `GET /api/latency` contract. */
+export interface LatencyResponse {
+  span: LatencySpan;
+  series: LatencySeries[];
+}
+
 /** Mirrors the `GET /api/config` contract. */
 export interface AppConfig {
   title: string;
