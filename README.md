@@ -14,7 +14,7 @@ docker compose up --build
 ```
 
 Open `http://localhost:8000` for the dashboard. The SQLite database lives in a named volume
-mounted at `/data`, so results survive a restart. See [.env.example](.env.example) for every
+mounted at `/data`, so results survive `docker compose down` and rebuilds (`down -v` deletes them). See [.env.example](.env.example) for every
 setting; the ones you'll typically change:
 
 | Variable | Purpose |
