@@ -36,7 +36,7 @@ requests within a round is paced by `request_interval_seconds`:
 | `request_interval_seconds` | `REQUEST_INTERVAL_SECONDS` | `2` | Minimum spacing, in seconds, between the start of two consecutive requests within a round (see above). |
 | `healthcheck_prompt` | `HEALTHCHECK_PROMPT` | `Reply with OK.` | Prompt sent to every model. |
 | `fake_data` | `FAKE_DATA` | `false` | Dev mode: generate synthetic results instead of calling the gateway (see below). |
-| `model_history_limit` | `MODEL_HISTORY_LIMIT` | `24` | Number of most recent check rounds returned in a model's own `history.availabilityPoints` (see `spec/api-families.md`), independent of the family's own history window. |
+| `model_history_limit` | `MODEL_HISTORY_LIMIT` | `24` | Number of most recent check rounds returned in a model's own `history.availabilityPoints` (see `docs/api-families.md`), independent of the family's own history window. |
 | `app_title` | `APP_TITLE` | `Gateway Health Check` | Display name for the dashboard and API docs (see below). |
 
 ## App title
