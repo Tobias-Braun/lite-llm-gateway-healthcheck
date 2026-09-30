@@ -31,8 +31,9 @@ interface Hover {
   rows: { label: string; color: string; text: string }[];
 }
 
-const HEIGHT = 180;
-const MARGIN = { top: 12, right: 16, bottom: 24, left: 56 };
+const HEIGHT = 200;
+// The left margin fits y labels up to "10000 ms" plus their padding from the plot area.
+const MARGIN = { top: 16, right: 20, bottom: 32, left: 72 };
 const FALLBACK_WIDTH = 640;
 
 /** Line chart drawn with d3 into a React-owned SVG; the hover rule and tooltip stay in React. */
@@ -74,7 +75,7 @@ export function LatencyChart({ series, xKind, formatX, label }: LatencyChartProp
 
     // Time axes get d3's multi-scale labels ("09 PM", "Sep 30"); bucket axes a thinned-out integer set.
     const timeScale = d3.scaleTime().domain(domain.map((d) => new Date(d)));
-    const xAxis = d3.axisBottom(x);
+    const xAxis = d3.axisBottom(x).tickSizeOuter(0).tickPadding(10);
     if (xKind === "time") {
       const tickFormat = timeScale.tickFormat();
       xAxis.tickValues(timeScale.ticks(maxTicks).map(Number)).tickFormat((d) => tickFormat(new Date(+d)));
@@ -91,6 +92,7 @@ export function LatencyChart({ series, xKind, formatX, label }: LatencyChartProp
           .axisLeft(y)
           .ticks(4)
           .tickSize(-innerWidth)
+          .tickPadding(12)
           .tickFormat((d) => `${d} ms`),
       );
     plot.append("g").attr("class", "chart-axis").attr("transform", `translate(0,${innerHeight})`).call(xAxis);
@@ -102,17 +104,17 @@ export function LatencyChart({ series, xKind, formatX, label }: LatencyChartProp
       .y((v) => y(v.y ?? 0))
       .curve(d3.curveMonotoneX);
     for (const s of series) {
-      plot.append("path").datum(s.values).attr("class", "chart-line").style("stroke", s.color).attr("d", line);
-      plot
-        .append("g")
+      // Line and dots read their color (and glow) from `--line`, see index.css.
+      const group = plot.append("g").style("--line", s.color);
+      group.append("path").datum(s.values).attr("class", "chart-line").attr("d", line);
+      group
         .selectAll("circle")
         .data(s.values.filter((v) => v.y != null))
         .join("circle")
         .attr("class", "chart-dot")
         .attr("r", 2.5)
         .attr("cx", (v) => x(v.x))
-        .attr("cy", (v) => y(v.y ?? 0))
-        .style("fill", s.color);
+        .attr("cy", (v) => y(v.y ?? 0));
     }
 
     plot
