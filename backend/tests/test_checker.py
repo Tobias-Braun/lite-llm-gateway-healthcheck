@@ -138,7 +138,7 @@ def test_backfill_fake_history_clusters_flaky_failures_chronologically(
     settings.check_interval_seconds = 60
     # A single model isolates the scripted random sequence to one outage timeline.
     model = ModelDef(modelname="claude-opus-5", provider="Google", company="Anthropic")
-    settings.model_families = [ModelFamily(title="Claude", models=[model])]
+    db.replace_models(settings.database_path, [ModelFamily(title="Claude", models=[model])])
     monkeypatch.setattr(checker, "is_flaky_tier", lambda family, model: True)
     # One outage of length 3 near the start of the backfilled history, healthy afterwards.
     randoms = [0.5, 0.01] + [0.9] * 60
@@ -162,14 +162,14 @@ def test_backfill_fake_history_tops_up_to_48_rounds(settings: Settings) -> None:
 
     asyncio.run(checker.backfill_fake_history(settings))
 
-    for family in settings.model_families:
+    for family in db.active_models(settings.database_path):
         for model in family.models:
             count, _ = db.model_history_bounds(settings.database_path, family.title, model.modelname)
             assert count == 48
 
     # A model already at the target is left alone on a later restart.
     asyncio.run(checker.backfill_fake_history(settings))
-    for family in settings.model_families:
+    for family in db.active_models(settings.database_path):
         for model in family.models:
             count, _ = db.model_history_bounds(settings.database_path, family.title, model.modelname)
             assert count == 48

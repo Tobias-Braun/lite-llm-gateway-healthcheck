@@ -1,7 +1,7 @@
 # LiteLLM Gateway Health Check
 
-A dockerized FastAPI service that periodically sends a health-check prompt to every configured
-model of an OpenAI-compatible (LiteLLM-like) gateway, stores the results in SQLite and shows the
+A dockerized FastAPI service that periodically sends a health-check prompt to every chat
+model of a LiteLLM gateway, stores the results in SQLite and shows the
 availability per model family in a small React dashboard.
 
 The documentation lives in [docs/README.md](docs/README.md). Work is tracked in GitHub issues.
@@ -9,7 +9,7 @@ The documentation lives in [docs/README.md](docs/README.md). Work is tracked in 
 ## Quick start (Docker Compose)
 
 ```sh
-cp .env.example .env          # then set GATEWAY_URL, API_KEY and MODEL_FAMILIES
+cp .env.example .env          # then set GATEWAY_URL and API_KEY
 docker compose up --build
 ```
 
@@ -21,7 +21,7 @@ setting; the ones you'll typically change:
 |---|---|
 | `GATEWAY_URL` | OpenAI-compatible base URL of the gateway (including `/v1`) |
 | `API_KEY` | Gateway API key |
-| `MODEL_FAMILIES` | Families and models to check, as single-line JSON |
+| `MODEL_REFRESH_TIMEZONE` | Timezone of the daily model list refresh window, 05:00–07:00 by default (default `Europe/Berlin`) |
 | `CHECK_INTERVAL_SECONDS` | Seconds between two check rounds (default 300) |
 | `REQUEST_INTERVAL_SECONDS` | Minimum spacing between the start of two requests within a round (default 2) |
 | `HISTORY_LIMIT` | Rounds of history returned per family (default 50) |
@@ -29,14 +29,15 @@ setting; the ones you'll typically change:
 
 ## Backend
 
-FastAPI app in `backend/` (Python 3.12+). On startup it creates the SQLite database, runs a
-check round immediately and then every `CHECK_INTERVAL_SECONDS`, sending `HEALTHCHECK_PROMPT`
-to every configured model concurrently. Results are stored per model and aggregated per family.
+FastAPI app in `backend/` (Python 3.12+). On startup it creates the SQLite database, fetches the
+model list from the gateway's LiteLLM `/model/info` (refreshed daily; outdated variants and
+non-chat models are skipped), runs a check round immediately and then every
+`CHECK_INTERVAL_SECONDS`, sending `HEALTHCHECK_PROMPT` to every model concurrently. Results are stored per model and aggregated per family.
 
 Run locally:
 
 ```sh
-cp .env.example .env          # then set GATEWAY_URL, API_KEY and MODEL_FAMILIES
+cp .env.example .env          # then set GATEWAY_URL and API_KEY
 cd backend
 python3 -m venv .venv
 .venv/bin/pip install -r requirements-dev.txt
@@ -49,7 +50,7 @@ precedence. All settings are documented in [.env.example](.env.example).
 Endpoints:
 
 - `GET /api/families` – status, availability history (one point per round, oldest first) and
-  per-model results for every family, in configuration order
+  per-model results for every family of the current model list
 - `GET /api/health` – liveness probe, returns `{"status": "ok"}`
 - `/` – the built frontend, if `STATIC_DIR` points to an existing directory
 

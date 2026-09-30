@@ -1,18 +1,27 @@
-"""Derives the model list from LiteLLM's `/model/info` endpoint.
+"""The model list: fetched from LiteLLM's `/model/info`, stored in the database, refreshed daily.
 
-Pure functions, not wired into the running app yet: a later issue will decide how (or whether)
-`fetch_models`/`fake_models` replace `Settings.model_families`.
+On startup and then once a day (at a random moment in the configured refresh window) the list
+is fetched and stored via `db.replace_models`; checks and the dashboard only read the stored
+list. A failed fetch keeps the previously stored list. See docs/backend.md.
 """
 
+import asyncio
+import logging
+import random
 import re
+from datetime import UTC, datetime, time, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import httpx2
 
+from app import db
 from app.config import ModelDef, ModelFamily, Settings
 
-# Ordered prefix lookup, seeded from `.env.example`'s `MODEL_FAMILIES`. First match wins;
-# anything else falls back to `("Other", "Unknown")`.
+logger = logging.getLogger(__name__)
+
+# Ordered prefix lookup; the first match wins, anything else falls back to `("Other", "Unknown")`.
+# Family order here is also the family order on the dashboard.
 _FAMILY_COMPANY_BY_PREFIX: list[tuple[re.Pattern[str], str, str]] = [
     (re.compile(r"^claude"), "Claude", "Anthropic"),
     (re.compile(r"^(gemini|gemma)"), "Gemini", "Google"),
@@ -24,6 +33,20 @@ _FAMILY_COMPANY_BY_PREFIX: list[tuple[re.Pattern[str], str, str]] = [
     (re.compile(r"^nemotron"), "Open-weight / Sovereign", "NVIDIA"),
     (re.compile(r"^nova"), "Open-weight / Sovereign", "Amazon"),
 ]
+_FAMILY_ORDER = list(dict.fromkeys(family for _pattern, family, _company in _FAMILY_COMPANY_BY_PREFIX))
+
+# LiteLLM provider ids mapped to the label shown on the dashboard; others are title-cased.
+_PROVIDER_LABELS = {
+    "azure": "Azure",
+    "azure_ai": "Azure",
+    "vertex_ai": "Google",
+    "vertex_ai_beta": "Google",
+    "gemini": "Google",
+    "bedrock": "AWS",
+    "sagemaker": "AWS",
+    "openai": "OpenAI",
+    "anthropic": "Anthropic",
+}
 
 # `prefix-version-suffix`, e.g. `gpt-5.6-terra` -> prefix "gpt", version "5.6", suffix "-terra".
 # Names that don't match (e.g. `gpt-4o`, `o3-mini`) are unparseable and always kept.
@@ -49,10 +72,16 @@ def infer_company(model_name: str) -> str:
 
 
 def provider_label(entry: dict[str, Any]) -> str:
-    provider = entry.get("litellm_params", {}).get("custom_llm_provider")
+    """Label of the deployment's provider, from `model_info.litellm_provider` or the LiteLLM params."""
+    params = entry.get("litellm_params") or {}
+    provider = (
+        (entry.get("model_info") or {}).get("litellm_provider")
+        or params.get("custom_llm_provider")
+        or (params.get("model", "").split("/", 1)[0] if "/" in params.get("model", "") else None)
+    )
     if not provider:
         return "Unknown"
-    return provider.replace("_", " ").title()
+    return _PROVIDER_LABELS.get(provider, provider.replace("_", " ").title())
 
 
 def _version_key(version: str) -> tuple[int, ...]:
@@ -78,43 +107,109 @@ def drop_outdated(model_names: list[str]) -> list[str]:
     return [name for index, name in enumerate(model_names) if index not in groups or index in kept_indexes]
 
 
+def _natural_key(name: str) -> list[tuple[int, int, str]]:
+    """Sort key comparing digit runs numerically, so `gpt-10` sorts after `gpt-9`."""
+    return [(1, int(part), "") if part.isdigit() else (0, 0, part) for part in re.findall(r"\d+|\D+", name)]
+
+
+def _group(models: list[tuple[str, ModelDef]]) -> list[ModelFamily]:
+    """Group `(family, model)` pairs into families: known families first, newest models first."""
+    families: dict[str, list[ModelDef]] = {}
+    for family, model in models:
+        families.setdefault(family, []).append(model)
+    ordered = sorted(families, key=lambda f: (_FAMILY_ORDER.index(f) if f in _FAMILY_ORDER else len(_FAMILY_ORDER), f))
+    return [
+        ModelFamily(
+            title=title,
+            models=sorted(families[title], key=lambda m: _natural_key(m.modelname), reverse=True),
+        )
+        for title in ordered
+    ]
+
+
+def _model_info_url(gateway_url: str) -> str:
+    # GATEWAY_URL is the OpenAI-compatible base (ending in /v1); /model/info lives at the root.
+    return f"{gateway_url.rstrip('/').removesuffix('/v1')}/model/info"
+
+
 async def fetch_models(settings: Settings) -> list[ModelFamily]:
-    """Fetch the gateway's chat models and group them into families (see `infer_family`)."""
-    async with httpx2.AsyncClient() as client:
+    """Fetch the gateway's current chat models, without outdated variants, grouped into families."""
+    async with httpx2.AsyncClient(timeout=settings.request_timeout_seconds) as client:
         response = await client.get(
-            f"{settings.gateway_url}/model/info",
+            _model_info_url(settings.gateway_url),
             headers={"Authorization": f"Bearer {settings.api_key}"},
         )
         response.raise_for_status()
     entries = response.json()["data"]
 
-    seen_names: set[str] = set()
-    chat_entries: list[dict[str, Any]] = []
+    # Several deployments of one model_name are load-balanced by LiteLLM; the first one wins.
+    chat_entries: dict[str, dict[str, Any]] = {}
     for entry in entries:
-        if entry.get("model_info", {}).get("mode") != "chat":
+        # Embedding, image, ... models can't answer a chat completion; a missing mode means chat.
+        if (entry.get("model_info") or {}).get("mode") not in ("chat", None):
             continue
-        name = entry["model_name"]
-        if name in seen_names:
-            continue
-        seen_names.add(name)
-        chat_entries.append(entry)
+        chat_entries.setdefault(entry["model_name"], entry)
 
-    kept_names = set(drop_outdated([entry["model_name"] for entry in chat_entries]))
+    current = drop_outdated(list(chat_entries))
+    return _group(
+        [
+            (
+                infer_family(name),
+                ModelDef(modelname=name, provider=provider_label(chat_entries[name]), company=infer_company(name)),
+            )
+            for name in current
+        ]
+    )
 
-    families: dict[str, ModelFamily] = {}
-    for entry in chat_entries:
-        name = entry["model_name"]
-        if name not in kept_names:
-            continue
-        family_title = infer_family(name)
-        model = ModelDef(modelname=name, provider=provider_label(entry), company=infer_company(name))
-        families.setdefault(family_title, ModelFamily(title=family_title, models=[])).models.append(model)
 
-    return list(families.values())
+async def refresh_models(settings: Settings) -> bool:
+    """Fetch the model list (or the synthetic one in fake data mode) and store it.
+
+    Returns whether the stored list was replaced; on failure the previous list stays in use.
+    """
+    try:
+        families = fake_models() if settings.fake_data else await fetch_models(settings)
+        await asyncio.to_thread(db.replace_models, settings.database_path, families)
+    except Exception:
+        logger.exception("Model list refresh failed; keeping the previously stored list")
+        return False
+    logger.info("Model list refreshed: %d models", sum(len(family.models) for family in families))
+    return True
+
+
+def next_refresh_delay(now: datetime, settings: Settings, rng: random.Random | None = None) -> float:
+    """Seconds from `now` until a random moment in the next refresh window that starts after `now`."""
+    tz = ZoneInfo(settings.model_refresh_timezone)
+    local_now = now.astimezone(tz)
+    start_hour, end_hour = settings.model_refresh_start_hour, settings.model_refresh_end_hour
+    span_days = 0 if end_hour > start_hour else 1
+    day = local_now.date()
+    while True:
+        # Local wall-clock times are converted to UTC before any arithmetic, so DST shifts
+        # don't distort the window.
+        start = datetime.combine(day, time(start_hour), tz).astimezone(UTC)
+        if start > now:
+            break
+        day += timedelta(days=1)
+    end_day = day + timedelta(days=span_days)
+    end = (
+        datetime.combine(end_day + timedelta(days=1), time(0), tz)
+        if end_hour == 24
+        else datetime.combine(end_day, time(end_hour), tz)
+    ).astimezone(UTC)
+    offset = (rng or random.SystemRandom()).uniform(0, (end - start).total_seconds())
+    return (start - now).total_seconds() + offset
+
+
+async def run_refresh_forever(settings: Settings) -> None:
+    """Refresh the model list once per refresh window until cancelled."""
+    while True:
+        await asyncio.sleep(next_refresh_delay(datetime.now(UTC), settings))
+        await refresh_models(settings)
 
 
 def fake_models() -> list[ModelFamily]:
-    """The same 4 families as `.env.example`'s `MODEL_FAMILIES`, with no I/O."""
+    """Built-in synthetic model list for fake data mode; no I/O."""
     return [
         ModelFamily(
             title="Claude",
