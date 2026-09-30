@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#12324a"/>
+  <!-- Gateway arch with a heartbeat line passing through it -->
+  <path d="M34 98V58a30 30 0 0 1 60 0v40" fill="none" stroke="#3f7ea6" stroke-width="10" stroke-linecap="round"/>
+  <polyline points="14,74 42,74 52,56 64,92 76,46 86,74 114,74" fill="none" stroke="#3ddc97" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="114" cy="74" r="6" fill="#3ddc97"/>
+</svg>
