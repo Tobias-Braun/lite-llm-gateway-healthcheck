@@ -20,12 +20,12 @@ MAX_TOKENS = 16
 # Error messages from the gateway can be long HTML/JSON bodies; keep the stored text short.
 MAX_ERROR_LENGTH = 500
 
-# Fake data mode: synthetic results and the startup backfill target (see spec/backend.md).
+# Fake data mode: synthetic results and the startup backfill target (see docs/backend.md).
 FAKE_LATENCY_RANGE_MS = (50, 400)
 FAKE_ERROR_MESSAGE = "Simulated failure (fake data mode)"
 FAKE_HISTORY_TARGET = 48
 # Share of models deterministically bucketed into the "stable" reliability tier; the rest are
-# "flaky" (see spec/backend.md).
+# "flaky" (see docs/backend.md).
 STABLE_TIER_PERCENT = 85
 STABLE_FAILURE_PROBABILITY = 0.01
 FLAKY_OUTAGE_START_PROBABILITY = 0.05
@@ -48,7 +48,7 @@ def utc_now_iso() -> str:
 
 
 def is_flaky_tier(family_title: str, model_name: str) -> bool:
-    """Deterministically bucket a model from a hash of its full name (see spec/backend.md)."""
+    """Deterministically bucket a model from a hash of its full name (see docs/backend.md)."""
     digest = hashlib.sha256(f"{family_title}/{model_name}".encode()).digest()
     bucket = int.from_bytes(digest, "big") % 100
     return bucket >= STABLE_TIER_PERCENT
@@ -61,7 +61,7 @@ def _fake_success() -> tuple[bool, int | None, str | None]:
 def fake_check_model(
     family_title: str, model_name: str, outage_state: FakeOutageState
 ) -> tuple[bool, int | None, str | None]:
-    """Generate one synthetic result for a model, per its stable/flaky tier (see spec/backend.md).
+    """Generate one synthetic result for a model, per its stable/flaky tier (see docs/backend.md).
 
     `outage_state` tracks each flaky model's remaining failing rounds across calls, so clusters
     of consecutive failures span successive rounds instead of failing independently.
