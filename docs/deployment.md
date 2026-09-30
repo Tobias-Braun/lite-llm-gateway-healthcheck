@@ -28,6 +28,8 @@ One service, built from the root `Dockerfile`:
 - `env_file: .env`
 - port mapping `8000:8000`
 - a named volume mounted at `/data` (holds the SQLite file across restarts)
+- `environment: DATABASE_PATH=/data/healthcheck.db`, which takes precedence over `env_file`, so a
+  `DATABASE_PATH` in `.env` cannot move the database out of the volume
 - `restart: unless-stopped`
 
 ## Behaviour
@@ -39,6 +41,9 @@ With a `.env` filled in with placeholder `GATEWAY_URL`/`API_KEY` (so gateway cal
 - `GET /` serves the dashboard
 - the failing gateway calls show as red per model/family in the dashboard, not as a crash or a
   blank page
+
+Stored results survive `docker compose down` and `docker compose up -d --build`; only
+`docker compose down -v` deletes the volume.
 
 ## CI (`.github/workflows/ci.yml`)
 
