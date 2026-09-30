@@ -4,7 +4,7 @@ Ships `backend/` and `frontend/` as one Docker image, run with Docker Compose.
 
 ## Image (multi-stage `Dockerfile` in repo root)
 
-**Stage 1 — `node:24-alpine`**: `npm ci && npm run build` in `frontend/`, producing
+**Stage 1 — `node:24-alpine`**: `npm ci --ignore-scripts && npm run build` in `frontend/`, producing
 `frontend/dist`.
 
 **Stage 2 — `python:3.12-slim`**:
@@ -49,9 +49,9 @@ Stored results survive `docker compose down` and `docker compose up -d --build`;
 
 Triggers on push and on pull request. Jobs:
 - backend: install `backend/requirements-dev.txt`, run `pytest` in `backend/`
-- frontend: `npm ci` and `npm run build` in `frontend/` (type-checks as part of the build),
+- frontend: `npm ci --ignore-scripts` and `npm run build` in `frontend/` (type-checks as part of the build),
   then `npm test`
-- image: `docker build .` from the repo root
+- docker: `docker build .` from the repo root
 
 ## README
 
