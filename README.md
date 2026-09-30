@@ -12,16 +12,25 @@
 
 ## About
 
-Your company runs a LiteLLM gateway, and you want to know how reliable it really is and when
-it's the best time to run long agentic workflows. This service answers both: it periodically
-sends a tiny health-check prompt to every chat model of the gateway, stores the results in
-SQLite and shows availability and latency per model family in a small React dashboard.
-Latency is also aggregated by hour of day and day of week, so quiet and busy windows stand out.
+Your company runs a LiteLLM gateway. How reliable is it really? And when is the best time to run
+long agentic workflows? This service answers both. It periodically sends a tiny prompt to every
+chat model of the gateway. A small React dashboard shows availability and latency per model
+family. Latency is also aggregated by hour of day and day of week, so quiet and busy windows
+stand out.
 
 <p align="center">
   <img src=".github/assets/dashboard.png" alt="Dashboard with latency overview and per-family availability" width="640">
   <br><em>The dashboard with synthetic data (<code>FAKE_DATA=true</code>).</em>
 </p>
+
+## Quick start
+
+```sh
+git clone https://github.com/Tobias-Braun/lite-llm-gateway-healthcheck.git
+cd lite-llm-gateway-healthcheck
+cp .env.example .env          # then set GATEWAY_URL and API_KEY
+docker compose up --build     # dashboard on http://localhost:8000
+```
 
 ## Features
 
@@ -34,18 +43,9 @@ Latency is also aggregated by hour of day and day of week, so quiet and busy win
   model refresh window can all be tuned via environment variables.
 - **Try it without a gateway:** `FAKE_DATA=true` fills the dashboard with synthetic results.
 
-The documentation lives in [docs/README.md](docs/README.md). Work is tracked in GitHub issues.
+## Configuration
 
-## Quick start (Docker Compose)
-
-```sh
-cp .env.example .env          # then set GATEWAY_URL and API_KEY
-docker compose up --build
-```
-
-Open `http://localhost:8000` for the dashboard. The SQLite database lives in a named volume
-mounted at `/data`, so results survive `docker compose down` and rebuilds (`down -v` deletes them). See [.env.example](.env.example) for every
-setting; the ones you'll typically change:
+See [.env.example](.env.example) for every setting; the ones you'll typically change:
 
 | Variable | Purpose |
 |---|---|
@@ -57,7 +57,13 @@ setting; the ones you'll typically change:
 | `HISTORY_LIMIT` | Rounds of history returned per family (default 50) |
 | `FAKE_DATA` | Set to `true` to try the dashboard with synthetic data, no real gateway or API key needed (default `false`) |
 
-## Backend
+## License
+
+MIT, see [LICENSE](LICENSE).
+
+## Code
+
+### Backend
 
 FastAPI app in `backend/` (Python 3.12+). On startup it creates the SQLite database, fetches the
 model list from the gateway's LiteLLM `/model/info` (refreshed daily; outdated variants and
@@ -93,7 +99,7 @@ cd backend
 .venv/bin/python -m pytest
 ```
 
-## Frontend
+### Frontend
 
 The dashboard in `frontend/` is a Vite + React + TypeScript app without a UI library (charts use
 d3). It fetches `/api/families` on load and every 30 seconds and shows one accordion panel per
@@ -107,7 +113,3 @@ npm run dev    # dev server on http://localhost:5173, proxies /api to http://loc
 npm test       # Vitest + Testing Library
 npm run build  # type-check and build into frontend/dist/ (served by the backend at /)
 ```
-
-## License
-
-MIT, see [LICENSE](LICENSE).
