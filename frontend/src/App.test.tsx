@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 import { Accordion } from "./components/Accordion";
+import { AvailabilityTimeline } from "./components/AvailabilityTimeline";
 import { families, latencyResponse } from "./test/fixtures";
 
 describe("Accordion", () => {
@@ -119,6 +120,29 @@ function stubFetch(config: { ok: boolean; title?: string } = { ok: true, title: 
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
 }
+
+describe("AvailabilityTimeline", () => {
+  it("truncates long errors and opens tooltips towards the timeline's middle", () => {
+    const longError = `Error code: 429 - ${"x".repeat(300)}`;
+    const { container } = render(
+      <AvailabilityTimeline
+        points={[
+          { datetime: "2026-09-25T14:00:00Z", available: "no", error: longError },
+          { datetime: "2026-09-25T14:30:00Z", available: "yes", latencyMs: 400 },
+          { datetime: "2026-09-25T15:00:00Z", available: "yes", latencyMs: 410 },
+        ]}
+      />,
+    );
+
+    const segments = container.querySelectorAll(".timeline-segment");
+    const tooltip = segments[0].getAttribute("data-tooltip") ?? "";
+    expect(tooltip).toContain("Error code: 429");
+    expect(tooltip.endsWith("…")).toBe(true);
+    expect(tooltip.length).toBeLessThan(longError.length);
+    expect(segments[0]).toHaveClass("tooltip-start");
+    expect(segments[2]).toHaveClass("tooltip-end");
+  });
+});
 
 describe("App", () => {
   afterEach(() => {

@@ -7,6 +7,9 @@ interface AvailabilityTimelineProps {
   small?: boolean;
 }
 
+/** Gateway errors can be whole JSON dumps; longer ones are cut so the tooltip stays compact. */
+const MAX_ERROR_LENGTH = 160;
+
 /** Time and status as today, plus latency (for `yes`) or error (for `no`) when the round has one. */
 function pointTooltip(point: AvailabilityPoint): string {
   const base = `${formatDateTime(point.datetime)}: ${AVAILABILITY_LABEL[point.available]}`;
@@ -14,7 +17,9 @@ function pointTooltip(point: AvailabilityPoint): string {
     return `${base}, ${point.latencyMs} ms`;
   }
   if (point.available === "no" && point.error) {
-    return `${base}, ${point.error}`;
+    const error =
+      point.error.length > MAX_ERROR_LENGTH ? `${point.error.slice(0, MAX_ERROR_LENGTH)}…` : point.error;
+    return `${base}, ${error}`;
   }
   return base;
 }
@@ -33,10 +38,13 @@ export function AvailabilityTimeline({ points, small }: AvailabilityTimelineProp
 
   return (
     <div className={className} aria-label="Availability history">
-      {points.map((point) => (
+      {points.map((point, index) => (
         <span
           key={point.datetime}
-          className={`timeline-segment status-${point.available}`}
+          // Tooltips open towards the timeline's middle, so they never stick out past its ends.
+          className={`timeline-segment status-${point.available} ${
+            index < points.length / 2 ? "tooltip-start" : "tooltip-end"
+          }`}
           data-tooltip={pointTooltip(point)}
         />
       ))}
