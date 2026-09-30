@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { fetchConfig, fetchFamilies } from "./api";
+import { REFRESH_INTERVAL_MS, fetchConfig, fetchFamilies } from "./api";
 import { Accordion } from "./components/Accordion";
+import { LatencyPanel } from "./components/LatencyPanel";
 import type { ModelFamily } from "./types";
 
-export const REFRESH_INTERVAL_MS = 30_000;
 export const DEFAULT_TITLE = "Gateway Health Check";
 
 export function App() {
@@ -66,7 +66,14 @@ export function App() {
       )}
       {families === null && !error && <p className="muted">Loading…</p>}
       {families !== null && families.length === 0 && <p className="muted">No model families configured.</p>}
-      {families !== null && families.length > 0 && <Accordion families={families} />}
+      {families !== null && families.length > 0 && (
+        <>
+          <section className="card">
+            <LatencyPanel title="Latency overview" />
+          </section>
+          <Accordion families={families} />
+        </>
+      )}
     </main>
   );
 }

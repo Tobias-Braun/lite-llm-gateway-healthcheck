@@ -132,6 +132,37 @@ def recent_rounds(path: Path, family: str, models: list[str], limit: int) -> lis
     return [(row["round_at"], row["succeeded"], row["total"]) for row in reversed(rows)]
 
 
+def family_latency_rounds(
+    path: Path, family: str, models: list[str], limit: int
+) -> list[tuple[str, int, int, float | None]]:
+    """Like `recent_rounds`, plus the mean latency of the round's successful checks (`None` if none succeeded)."""
+    if not models or limit <= 0:
+        return []
+    with closing(connect(path)) as conn:
+        rows = conn.execute(
+            "SELECT round_at, SUM(success) AS succeeded, COUNT(*) AS total,"
+            " AVG(CASE WHEN success = 1 THEN latency_ms END) AS latency FROM checks"
+            f" WHERE family = ? AND model IN ({_placeholders(models)})"
+            " GROUP BY round_id, round_at ORDER BY round_at DESC, round_id DESC LIMIT ?",
+            [family, *models, limit],
+        ).fetchall()
+    return [(row["round_at"], row["succeeded"], row["total"], row["latency"]) for row in reversed(rows)]
+
+
+def latency_checks(path: Path, family: str, models: list[str], since: str) -> list[tuple[str, int]]:
+    """Return `(round_at, latency_ms)` of every successful check of the given models at or after `since`."""
+    if not models:
+        return []
+    with closing(connect(path)) as conn:
+        rows = conn.execute(
+            "SELECT round_at, latency_ms FROM checks"
+            f" WHERE family = ? AND model IN ({_placeholders(models)})"
+            " AND success = 1 AND latency_ms IS NOT NULL AND round_at >= ?",
+            [family, *models, since],
+        ).fetchall()
+    return [(row["round_at"], row["latency_ms"]) for row in rows]
+
+
 def model_recent_rounds(path: Path, family: str, model: str, limit: int) -> list[tuple[str, bool, int | None, str | None]]:
     """Return `(round_at, success, latency_ms, error)` for the last `limit` rounds of a model, oldest first."""
     if limit <= 0:

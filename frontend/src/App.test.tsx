@@ -1,10 +1,18 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 import { Accordion } from "./components/Accordion";
-import { families } from "./test/fixtures";
+import { families, latencyResponse } from "./test/fixtures";
 
 describe("Accordion", () => {
+  beforeEach(() => {
+    stubFetch();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("renders one panel per family with timeline visible while collapsed", () => {
     const { container } = render(<Accordion families={families} />);
 
@@ -52,10 +60,53 @@ describe("Accordion", () => {
     const successSegments = rows[1].querySelectorAll(".timeline-segment");
     expect(successSegments[0].getAttribute("data-tooltip")).toMatch(/790 ms$/);
   });
+
+  it("shows the family latency chart only while the panel is open, and switches spans", async () => {
+    const fetchMock = stubFetch();
+    render(<Accordion families={families} />);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getAllByRole("button")[0]);
+    expect(await screen.findByRole("img", { name: "Family latency, Live" })).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenLastCalledWith(expect.stringMatching(/span=live.*family=Claude/), expect.anything());
+    expect(screen.queryByRole("combobox", { name: "Lookback" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Hour of day" }));
+    expect(await screen.findByRole("img", { name: "Family latency, Hour of day" })).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenLastCalledWith(expect.stringMatching(/span=hour&days=30/), expect.anything());
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Lookback" }), { target: { value: "90" } });
+    expect(fetchMock).toHaveBeenLastCalledWith(expect.stringMatching(/span=hour&days=90/), expect.anything());
+  });
+
+  it("expands a model row into its full-length health bar and latency chart", async () => {
+    const fetchMock = stubFetch();
+    const { container } = render(<Accordion families={families} />);
+    fireEvent.click(screen.getAllByRole("button")[0]);
+
+    const toggle = screen.getByRole("button", { name: "claude-sonnet-5" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+
+    expect(await screen.findByRole("img", { name: "Latency, Live" })).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringMatching(/model=claude-sonnet-5/), expect.anything());
+    // Four live rounds from the latency API, more than the row's own two-round model history.
+    const detailSegments = container.querySelectorAll(".model-detail .timeline-segment");
+    expect(detailSegments).toHaveLength(4);
+    expect(detailSegments[1]).toHaveClass("status-no");
+    expect(detailSegments[1].getAttribute("data-tooltip")).toContain("down");
+
+    fireEvent.click(toggle);
+    expect(container.querySelector(".model-detail")).not.toBeInTheDocument();
+  });
 });
 
 function stubFetch(config: { ok: boolean; title?: string } = { ok: true, title: "Gateway Health Check" }) {
   const fetchMock = vi.fn((url: string) => {
+    if (url.startsWith("/api/latency")) {
+      return Promise.resolve(new Response(JSON.stringify(latencyResponse(url)), { status: 200 }));
+    }
     if (url === "/api/config") {
       return Promise.resolve(
         config.ok
@@ -81,6 +132,21 @@ describe("App", () => {
     expect(screen.getByText("Loading…")).toBeInTheDocument();
     expect(await screen.findByText("Claude")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith("/api/families", expect.anything());
+  });
+
+  it("shows the cross-family latency overview with one stats row per family", async () => {
+    stubFetch();
+
+    render(<App />);
+    expect(await screen.findByRole("img", { name: "Latency overview, Live" })).toBeInTheDocument();
+    const stats = screen.getByRole("table");
+    const rows = within(stats).getAllByRole("row");
+    expect(rows[0]).toHaveTextContent("FamilyAvgp95Checks");
+    expect(rows.slice(1).map((row) => row.textContent)).toEqual([
+      "Claude120 ms130 ms3",
+      "GPT120 ms130 ms3",
+      "Partial120 ms130 ms3",
+    ]);
   });
 
   it("shows an error when the request fails", async () => {

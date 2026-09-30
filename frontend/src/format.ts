@@ -17,6 +17,11 @@ export function formatLatency(model: ModelDef): string {
   return model.status === "yes" && model.latencyMs != null ? `${model.latencyMs} ms` : "—";
 }
 
+/** A latency value in whole milliseconds, or `—` if there is none. */
+export function formatMs(ms: number | null): string {
+  return ms == null ? "—" : `${ms} ms`;
+}
+
 /** Success rate over the shown history window (`yes / (yes + no)`), or `—` if none has a result. */
 export function formatUptime(points: AvailabilityPoint[]): string {
   const yes = points.filter((p) => p.available === "yes").length;

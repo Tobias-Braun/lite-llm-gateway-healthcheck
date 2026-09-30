@@ -73,6 +73,8 @@ This rule produces both the family's `status` field (the latest round) and every
     rounds of `history.availabilityPoints`, rounded to a whole-number percentage (e.g. `98%`).
     `unknown` rounds count towards neither side. Shows `—` if every round in the window is
     `unknown`.
+- A model's name toggles a detail row with its latency chart and a longer health bar (see
+  `docs/api-latency.md`, "Dashboard rendering").
 - Hovering a model's history-timeline cell shows the same time and status as today, plus — only
   when that round has a result — the latency in ms for a `yes` round or the error text for a `no`
   round. `unknown` cells are unchanged (time and status only).
