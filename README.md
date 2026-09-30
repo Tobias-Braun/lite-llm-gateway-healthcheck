@@ -6,6 +6,7 @@
   [![CI](https://github.com/Tobias-Braun/lite-llm-gateway-healthcheck/actions/workflows/ci.yml/badge.svg)](https://github.com/Tobias-Braun/lite-llm-gateway-healthcheck/actions/workflows/ci.yml)
   ![Python](https://img.shields.io/badge/python-3.12-3776ab)
   ![Docker](https://img.shields.io/badge/docker-compose-2496ed)
+  [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 </div>
 
@@ -100,3 +101,8 @@ npm ci
 npm run dev    # dev server on http://localhost:5173, proxies /api to http://localhost:8000
 npm test       # Vitest + Testing Library
 npm run build  # type-check and build into frontend/dist/ (served by the backend at /)
+```
+
+## License
+
+MIT, see [LICENSE](LICENSE).
