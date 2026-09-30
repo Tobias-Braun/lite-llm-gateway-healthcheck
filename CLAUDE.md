@@ -1,14 +1,8 @@
 # CLAUDE.md
 
-This repo is run by the software factory. Tobi (`Tobias-Braun`) files issues; agents clarify,
-specify, implement and review them.
+LiteLLM Gateway Health Check: a dockerized FastAPI backend (`backend/`) that periodically checks
+every model of an OpenAI-compatible gateway and stores the results in SQLite, plus a React
+dashboard (`frontend/`) that shows the availability per model family.
 
-- Read `spec/README.md` first and load only the spec files you need.
-- Flow is always issue → spec → code. Never invent spec content.
-- Work for issue `n` happens on branch `factory/issue-<n>`, in one PR that closes the issue.
-- Never create issues, never push to `main`, never edit `.claude/`, `.devcontainer/` or `factory.conf`.
-- Use `.claude/tools/` for GitHub: they add the `<agent-name>@factory.tobi-braun.com` prefix line
-  every comment needs, edit your in-place comments and set state labels.
-- Only label and comment on issues; never edit their title or body, never close them.
+- Read `docs/README.md` first and load only the documentation files you need.
 - Keep changes minimal: low code volume, clear names, short comments only where they add value.
-- When stuck, comment why and what would unblock you, then stop.
