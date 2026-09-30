@@ -70,14 +70,14 @@ def _family_availability(succeeded: int, total: int) -> Availability:
 
 
 def get_families(settings: Settings) -> list[FamilyStatus]:
-    """Build the status of every configured family, in configuration order.
+    """Build the status of every family of the active model list, in stored order.
 
     A round is `yes` if every model of the family succeeded, `no` if every model failed, and
     `partial` if some succeeded and some failed. Families and models without any stored result
     are reported as `unknown`.
     """
     families = []
-    for family in settings.model_families:
+    for family in db.active_models(settings.database_path):
         names = [model.modelname for model in family.models]
         latest = db.latest_results(settings.database_path, family.title, names)
         rounds = db.recent_rounds(settings.database_path, family.title, names, settings.history_limit)

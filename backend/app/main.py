@@ -1,4 +1,4 @@
-"""FastAPI application: API routes, background checker and optional static frontend."""
+"""FastAPI application: API routes, background checker, model list refresh and optional static frontend."""
 
 import asyncio
 import contextlib
@@ -12,7 +12,7 @@ from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
 from starlette.types import Scope
 
-from app import checker, db
+from app import checker, db, models
 from app.config import Settings
 from app.status import FamilyStatus, get_families
 
@@ -32,12 +32,17 @@ class SPAStaticFiles(StaticFiles):
 
 
 def create_app(settings: Settings, run_checks: bool = True) -> FastAPI:
-    """Build the application. `run_checks=False` skips the background checker (used in tests)."""
+    """Build the application. `run_checks=False` skips the background checker and model refresh (used in tests)."""
+
+    async def run_background() -> None:
+        # The first round must see the freshly fetched list, so the initial refresh comes first.
+        await models.refresh_models(settings)
+        await asyncio.gather(checker.run_forever(settings), models.run_refresh_forever(settings))
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         db.init_db(settings.database_path)
-        task = asyncio.create_task(checker.run_forever(settings)) if run_checks else None
+        task = asyncio.create_task(run_background()) if run_checks else None
         try:
             yield
         finally:

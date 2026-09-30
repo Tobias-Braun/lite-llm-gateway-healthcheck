@@ -15,12 +15,12 @@ import pytest
 
 os.environ.setdefault("GATEWAY_URL", "http://gateway.invalid/v1")
 os.environ.setdefault("API_KEY", "test-key")
-os.environ.setdefault("MODEL_FAMILIES", "[]")
 os.environ.setdefault("DATABASE_PATH", str(Path(tempfile.mkdtemp()) / "import.db"))
 
 from app import db  # noqa: E402
-from app.config import Settings  # noqa: E402
+from app.config import ModelFamily, Settings  # noqa: E402
 
+# Stored as the active model list by the `settings` fixture.
 FAMILIES = [
     {
         "title": "Claude",
@@ -46,13 +46,13 @@ def settings(tmp_path: Path) -> Settings:
         _env_file=None,
         gateway_url="http://gateway.invalid/v1",
         api_key="test-key",
-        model_families=FAMILIES,
         database_path=tmp_path / "data" / "healthcheck.db",
         history_limit=3,
         model_history_limit=3,
         request_interval_seconds=0,
     )
     db.init_db(s.database_path)
+    db.replace_models(s.database_path, [ModelFamily.model_validate(family) for family in FAMILIES])
     return s
 
 
