@@ -1,6 +1,7 @@
 import { useId } from "react";
 import type { ModelFamily } from "../types";
 import { AvailabilityTimeline } from "./AvailabilityTimeline";
+import { LatencyPanel } from "./LatencyPanel";
 import { ModelTable } from "./ModelTable";
 import { StatusDot } from "./StatusDot";
 
@@ -28,7 +29,9 @@ export function FamilyPanel({ family, open, onToggle }: FamilyPanelProps) {
       </h2>
       <AvailabilityTimeline points={family.history.availabilityPoints} />
       <div id={contentId} className="panel-content" hidden={!open}>
-        <ModelTable models={family.models} />
+        {/* Mounted only while open, so closed panels don't fetch latency. */}
+        {open && <LatencyPanel title="Family latency" family={family.title} />}
+        <ModelTable family={family.title} models={family.models} />
       </div>
     </section>
   );
