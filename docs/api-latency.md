@@ -38,7 +38,7 @@ arithmetic means, p95 is nearest-rank; both are rounded to whole milliseconds.
 
 ## Dashboard rendering
 
-- Latency is drawn as line charts (d3) in purple (`--latency`); missing values leave a gap.
+- Latency is drawn as line charts (d3) in the cyan accent color (`--latency`); missing values leave a gap.
   Hovering shows the time or bucket and the latency (aggregates: avg, p95 and check count).
 - Every chart has a span switch (Live / Hour of day / Day of week / Day of month) and, for
   aggregates, a lookback of 7 / 30 / 90 days. Aggregates use the viewer's browser time zone.
