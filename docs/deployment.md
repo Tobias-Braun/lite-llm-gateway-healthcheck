@@ -53,6 +53,26 @@ Triggers on push and on pull request. Jobs:
   then `npm test`
 - docker: `docker build .` from the repo root
 
+## Scheduled start/stop (macOS launchd, `scripts/launchd/`)
+
+This is an optional LaunchAgent for running the stack on a laptop. `scripts/launchd/install.sh` writes
+`~/Library/LaunchAgents/com.healthcheck.scheduler.plist` from the template next to it, fills in the repo
+path and loads the agent. `install.sh --uninstall` unloads and removes the agent and leaves the stack as it is.
+
+launchd runs `healthcheck-scheduler.sh` at login and every 5 minutes. If the laptop sleeps through a
+run, launchd does it once on wake. Each run works out the desired state and applies it:
+- **up** if the local hour is in `[START_HOUR, STOP_HOUR)` (default 07–22) and
+  `http://captive.apple.com/hotspot-detect.html` answers `Success`. The hour uses the current
+  timezone, so the schedule follows travel. A captive portal counts as offline, so no false
+  outages are recorded.
+- otherwise **down**
+
+"Up" runs `docker compose up -d` without a build or pull, so the image must already exist. "Down" runs
+`docker compose stop`, which keeps the containers and the volume. If the Docker engine is not running, an
+"up" run launches Rancher Desktop and a later run starts the stack. A "down" run does nothing in that case.
+State changes are logged to `~/Library/Logs/healthcheck-scheduler.log`. If you stop the stack by hand during
+the day, the next run starts it again. To keep the stack stopped, unload the agent.
+
 ## README
 
 Adds a Docker Compose quick start:

@@ -32,6 +32,10 @@ cp .env.example .env          # then set GATEWAY_URL and API_KEY
 docker compose up --build     # dashboard on http://localhost:8000
 ```
 
+Running it on a Mac laptop? `scripts/launchd/install.sh` installs a LaunchAgent. The agent keeps
+the stack up from 07:00 to 22:00 local time, but only while the laptop is online, and it catches
+up after sleep. See [docs/deployment.md](docs/deployment.md) for details.
+
 ## Features
 
 - **Cheap to run:** each check is a one-line prompt ("Reply with OK."), so a month of checks
