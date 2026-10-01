@@ -33,7 +33,8 @@ stored in the `models` table:
 
 ## Round behaviour
 
-On startup, and then every `check_interval_seconds`, the service runs one check round:
+On startup, and then every `check_interval_seconds` (measured start to start, so rounds keep a fixed
+cadence and land one per history slot, see `docs/api-families.md`), the service runs one check round:
 
 - Every active model (see above) is checked: the `healthcheck_prompt` is sent to the
   gateway with a `request_timeout_seconds` timeout.
@@ -60,7 +61,7 @@ requests within a round is paced by `request_interval_seconds`:
 
 | Setting | Env var | Default | Meaning |
 |---|---|---|---|
-| `check_interval_seconds` | `CHECK_INTERVAL_SECONDS` | `300` | Seconds between the end of one round and the start of the next. |
+| `check_interval_seconds` | `CHECK_INTERVAL_SECONDS` | `300` | Seconds between the start of two consecutive rounds; also the width of one history slot. |
 | `request_timeout_seconds` | `REQUEST_TIMEOUT_SECONDS` | `30` | Per-request timeout against the gateway. |
 | `request_interval_seconds` | `REQUEST_INTERVAL_SECONDS` | `2` | Minimum spacing, in seconds, between the start of two consecutive requests within a round (see above). |
 | `healthcheck_prompt` | `HEALTHCHECK_PROMPT` | `Reply with OK.` | Prompt sent to every model. |
@@ -68,7 +69,7 @@ requests within a round is paced by `request_interval_seconds`:
 | `model_refresh_end_hour` | `MODEL_REFRESH_END_HOUR` | `7` | End (exclusive, 0–24) of the daily model list refresh window. |
 | `model_refresh_timezone` | `MODEL_REFRESH_TIMEZONE` | `Europe/Berlin` | IANA timezone of the refresh window. |
 | `fake_data` | `FAKE_DATA` | `false` | Dev mode: generate synthetic results instead of calling the gateway (see below). |
-| `model_history_limit` | `MODEL_HISTORY_LIMIT` | `24` | Number of most recent check rounds returned in a model's own `history.availabilityPoints` (see `docs/api-families.md`), independent of the family's own history window. |
+| `model_history_limit` | `MODEL_HISTORY_LIMIT` | `24` | Number of most recent history slots returned in a model's own `history.availabilityPoints` (see `docs/api-families.md`), independent of the family's own history window. |
 | `app_title` | `APP_TITLE` | `Gateway Health Check` | Display name for the dashboard and API docs (see below). |
 
 ## App title

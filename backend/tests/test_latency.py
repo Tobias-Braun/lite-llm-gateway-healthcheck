@@ -29,7 +29,8 @@ def _get(settings: Settings, **params: object):
 
 
 def test_live_family_mean_excludes_failures(settings: Settings) -> None:
-    start = datetime.now(UTC) - timedelta(hours=1)
+    # One round per 5-minute slot of the last 15 minutes (history_limit 3).
+    start = datetime.now(UTC) - timedelta(minutes=11)
     _insert(settings, start, "Claude", {"claude-sonnet-5": 100, "claude-opus-5": 300})
     _insert(settings, start + timedelta(minutes=5), "Claude", {"claude-sonnet-5": 200, "claude-opus-5": None})
     _insert(settings, start + timedelta(minutes=10), "Claude", {"claude-sonnet-5": None, "claude-opus-5": None})
@@ -50,7 +51,7 @@ def test_live_family_mean_excludes_failures(settings: Settings) -> None:
 def test_live_model_uses_family_history_limit(settings: Settings) -> None:
     settings.history_limit = 4
     settings.model_history_limit = 2
-    start = datetime.now(UTC) - timedelta(hours=1)
+    start = datetime.now(UTC) - timedelta(minutes=21)
     for i in range(5):
         _insert(settings, start + timedelta(minutes=5 * i), "GPT", {"gpt-5": None if i == 4 else 100 + i})
 
@@ -59,6 +60,18 @@ def test_live_model_uses_family_history_limit(settings: Settings) -> None:
     assert [p["latencyMs"] for p in series["points"]] == [101, 102, 103, None]
     assert series["points"][-1]["error"] == "down"
     assert series["model"] == "gpt-5"
+
+
+def test_live_points_fill_empty_slots_with_unknown(settings: Settings) -> None:
+    _insert(settings, datetime.now(UTC) - timedelta(minutes=1), "GPT", {"gpt-5": 100})
+
+    [series] = _get(settings, family="GPT").json()["series"]
+
+    assert [(p["available"], p["latencyMs"]) for p in series["points"]] == [
+        ("unknown", None),
+        ("unknown", None),
+        ("yes", 100),
+    ]
 
 
 def test_aggregate_buckets_in_time_zone(settings: Settings) -> None:

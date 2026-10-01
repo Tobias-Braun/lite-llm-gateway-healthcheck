@@ -20,18 +20,19 @@ in the active model list → 404.
 `{ span, series }`, one series per requested family/model, each with:
 
 - `family`, `model` (`null` for a family series).
-- `points` (live only, else `null`): the last `history_limit` rounds, oldest first, each
+- `points` (live only, else `null`): the last `history_limit` history slots (see
+  `docs/api-families.md`, "History slots"), oldest first, each
   `{ datetime, available, latencyMs, error }`.
-  - Model series: that round's own availability (`yes`/`no`), latency and error — the same
+  - Model series: the model's availability in that slot (`yes`/`no`/`unknown`), latency and error — the same
     window length as the family timeline, not the shorter `model_history_limit`.
   - Family series: the family availability (see `docs/api-families.md`) and the mean latency of the
-    round's successful active models (`null` if none succeeded); `error` is always `null`.
+    slot's successful active models (`null` if none succeeded); `error` is always `null`.
 - `buckets` (aggregate spans only, else `null`): every bucket of the span — hours `0`–`23`,
   weekdays `0`–`6` (Monday = 0) or days `1`–`31` — each `{ bucket, avgMs, p95Ms, count }`.
   Every successful check of the series' models within the last `days` days is placed into the
   bucket of its round time in `tz`. Empty buckets have `count = 0` and `null` figures.
 - `summary`: `{ avgMs, p95Ms, count }` over the individual successful checks behind the series
-  (the shown live rounds, or the lookback window).
+  (the shown live slots, or the lookback window).
 
 Only successful checks carry a latency; failures never count towards any figure. Averages are
 arithmetic means, p95 is nearest-rank; both are rounded to whole milliseconds.
