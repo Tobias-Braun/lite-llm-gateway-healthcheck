@@ -178,17 +178,19 @@ async def backfill_fake_history(settings: Settings, fake_outage_state: FakeOutag
 
 
 async def run_forever(settings: Settings, client: AsyncOpenAI | None = None) -> None:
-    """Run a round immediately and then every `check_interval_seconds` until cancelled."""
+    """Run a round immediately and then one every `check_interval_seconds` (start to start) until cancelled."""
     client = client or create_client(settings)
     fake_outage_state: FakeOutageState = {}
     try:
         if settings.fake_data:
             await backfill_fake_history(settings, fake_outage_state)
         while True:
+            started = time.monotonic()
             try:
                 await run_round(settings, client, fake_outage_state)
             except Exception:
                 logger.exception("Check round failed")
-            await asyncio.sleep(settings.check_interval_seconds)
+            # Fixed cadence: rounds land one per history slot instead of drifting by their duration.
+            await asyncio.sleep(max(0.0, settings.check_interval_seconds - (time.monotonic() - started)))
     finally:
         await client.close()

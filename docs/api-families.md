@@ -30,7 +30,16 @@ round:
 | Some succeeded, some failed | `partial` |
 
 This rule produces both the family's `status` field (the latest round) and every point of
-`history.availabilityPoints`.
+`history.availabilityPoints` (there applied to the checks within the slot, see below).
+
+## History slots
+
+Histories are not one point per stored round but a fixed wall-clock grid shared by every family
+and model in a response: slots of `check_interval_seconds` ending at request time, oldest first,
+each covering `(end - interval, end]`. Every point's `datetime` is its slot's end, so the n-th
+point means the same time window in every family and model. Within a slot, each model's latest
+check counts; a slot with no check is `unknown`. A history therefore always has exactly its
+configured number of points, even for models that were never or only recently checked.
 
 ## Response shape
 
@@ -38,14 +47,14 @@ This rule produces both the family's `status` field (the latest round) and every
 
 - `title`: family name.
 - `status`: the family's availability for its latest round (see above).
-- `history.availabilityPoints`: the family's last `history_limit` rounds, oldest first, each an
+- `history.availabilityPoints`: the family's last `history_limit` slots, oldest first, each an
   `{ datetime, available }` pair.
 - `models`: the family's models, each with:
   - `modelname`, `provider`, `company`: from the stored model list.
   - `status`: the model's own latest availability (`yes` / `no` / `unknown`).
   - `lastChecked`, `latencyMs`, `error`: from the model's latest check, or `null` if none yet.
-  - `history.availabilityPoints`: the model's own last `model_history_limit` rounds, oldest
-    first, in the same shape as the family's history — independent of the other models in the
+  - `history.availabilityPoints`: the model's own last `model_history_limit` slots, oldest
+    first (the most recent part of the same grid), in the same shape as the family's history — independent of the other models in the
     family, and of the family's own `history_limit` window. Each point additionally carries
     `latencyMs`/`error` from that round's stored check result for this model: present (one of
     them non-null) when the round has a result, `null`/absent when the point's `available` is

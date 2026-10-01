@@ -41,7 +41,9 @@ def test_families_response_shape(settings: Settings) -> None:
     assert set(claude) == {"title", "status", "history", "models"}
     assert claude["title"] == "Claude"
     assert claude["status"] == "yes"
-    [point] = claude["history"]["availabilityPoints"]
+    # The round lands in the newest slot of the full-length grid; older slots are `unknown`.
+    *older, point = claude["history"]["availabilityPoints"]
+    assert [p["available"] for p in older] == ["unknown", "unknown"]
     assert set(point) == {"datetime", "available"}
     assert point["available"] == "yes"
     assert point["datetime"].endswith("Z")
@@ -56,8 +58,8 @@ def test_families_response_shape(settings: Settings) -> None:
         "history",
     }
     assert claude["models"][0]["modelname"] == "claude-sonnet-5"
-    assert claude["models"][0]["lastChecked"] == point["datetime"]
-    [model_point] = claude["models"][0]["history"]["availabilityPoints"]
+    assert claude["models"][0]["lastChecked"] <= point["datetime"]
+    model_point = claude["models"][0]["history"]["availabilityPoints"][-1]
     assert model_point["available"] == "yes"
     assert set(model_point) == {"datetime", "available", "latencyMs", "error"}
     assert model_point["latencyMs"] is not None
@@ -67,15 +69,18 @@ def test_families_response_shape(settings: Settings) -> None:
     assert gpt["models"][0]["status"] == "no"
     assert "gpt-5 is down" in gpt["models"][0]["error"]
     assert gpt["models"][0]["latencyMs"] is None
-    [gpt_point] = gpt["models"][0]["history"]["availabilityPoints"]
+    gpt_point = gpt["models"][0]["history"]["availabilityPoints"][-1]
     assert gpt_point["available"] == "no"
     assert "gpt-5 is down" in gpt_point["error"]
     assert gpt_point["latencyMs"] is None
 
+    unknown_points = [
+        {"datetime": p["datetime"], "available": "unknown"} for p in claude["history"]["availabilityPoints"]
+    ]
     assert never == {
         "title": "Never checked",
         "status": "unknown",
-        "history": {"availabilityPoints": []},
+        "history": {"availabilityPoints": unknown_points},
         "models": [
             {
                 "modelname": "nova-2-lite",
@@ -85,7 +90,7 @@ def test_families_response_shape(settings: Settings) -> None:
                 "lastChecked": None,
                 "latencyMs": None,
                 "error": None,
-                "history": {"availabilityPoints": []},
+                "history": {"availabilityPoints": [{**p, "latencyMs": None, "error": None} for p in unknown_points]},
             }
         ],
     }

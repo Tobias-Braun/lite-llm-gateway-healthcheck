@@ -1,11 +1,12 @@
 """Aggregation of stored check results into the `GET /api/families` response."""
 
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
-from app import db
+from app import db, slots
 from app.config import Settings
 
 Availability = Literal["yes", "no", "partial", "unknown"]
@@ -69,36 +70,51 @@ def _family_availability(succeeded: int, total: int) -> Availability:
     return "partial"
 
 
-def get_families(settings: Settings) -> list[FamilyStatus]:
+def _latest_round_availability(latest: list[db.CheckResult]) -> Availability:
+    """The family availability of the newest round among the models' latest results."""
+    if not latest:
+        return "unknown"
+    newest = max(latest, key=lambda r: (r.round_at, r.round_id)).round_id
+    in_round = [r for r in latest if r.round_id == newest]
+    return _family_availability(sum(r.success for r in in_round), len(in_round))
+
+
+def get_families(settings: Settings, now: datetime | None = None) -> list[FamilyStatus]:
     """Build the status of every family of the active model list, in stored order.
 
-    A round is `yes` if every model of the family succeeded, `no` if every model failed, and
-    `partial` if some succeeded and some failed. Families and models without any stored result
-    are reported as `unknown`.
+    Histories use the shared slot grid (see `app.slots`): a slot is `yes` if every model of the
+    family that was checked in it succeeded, `no` if every one failed, `partial` if mixed and
+    `unknown` if none was checked. Families and models without any stored result are `unknown`.
     """
+    count = max(settings.history_limit, settings.model_history_limit)
+    grid = slots.grid(settings.check_interval_seconds, count, now)
+    family_offset = count - settings.history_limit
+    model_offset = count - settings.model_history_limit
     families = []
     for family in db.active_models(settings.database_path):
         names = [model.modelname for model in family.models]
         latest = db.latest_results(settings.database_path, family.title, names)
-        rounds = db.recent_rounds(settings.database_path, family.title, names, settings.history_limit)
+        checks = db.checks_since(settings.database_path, family.title, names, grid[0].start) if grid else []
+        buckets = slots.latest_per_slot(grid, checks)
         points = [
-            AvailabilityPoint(datetime=at, available=_family_availability(succeeded, total))
-            for at, succeeded, total in rounds
+            AvailabilityPoint(
+                datetime=slot.end,
+                available=_family_availability(sum(r.success for r in bucket.values()), len(bucket)),
+            )
+            for slot, bucket in zip(grid[family_offset:], buckets[family_offset:])
         ]
         models = []
         for model in family.models:
             result = latest.get(model.modelname)
-            model_rounds = db.model_recent_rounds(
-                settings.database_path, family.title, model.modelname, settings.model_history_limit
-            )
             model_points = [
                 ModelAvailabilityPoint(
-                    datetime=at,
-                    available=_model_availability(ok),
-                    latency_ms=latency_ms,
-                    error=error,
+                    datetime=slot.end,
+                    available=_model_availability(check.success) if check else "unknown",
+                    latency_ms=check.latency_ms if check else None,
+                    error=check.error if check else None,
                 )
-                for at, ok, latency_ms, error in model_rounds
+                for slot, bucket in zip(grid[model_offset:], buckets[model_offset:])
+                for check in [bucket.get(model.modelname)]
             ]
             models.append(
                 ModelStatus(
@@ -115,7 +131,7 @@ def get_families(settings: Settings) -> list[FamilyStatus]:
         families.append(
             FamilyStatus(
                 title=family.title,
-                status=points[-1].available if points else "unknown",
+                status=_latest_round_availability(list(latest.values())),
                 history=FamilyHistory(availability_points=points),
                 models=models,
             )

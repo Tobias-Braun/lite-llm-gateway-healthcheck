@@ -58,7 +58,7 @@ See [.env.example](.env.example) for every setting; the ones you'll typically ch
 | `MODEL_REFRESH_TIMEZONE` | Timezone of the daily model list refresh window, 05:00–07:00 by default (default `Europe/Berlin`) |
 | `CHECK_INTERVAL_SECONDS` | Seconds between two check rounds (default 300) |
 | `REQUEST_INTERVAL_SECONDS` | Minimum spacing between the start of two requests within a round (default 2) |
-| `HISTORY_LIMIT` | Rounds of history returned per family (default 50) |
+| `HISTORY_LIMIT` | History slots (one per check interval) returned per family (default 50) |
 | `FAKE_DATA` | Set to `true` to try the dashboard with synthetic data, no real gateway or API key needed (default `false`) |
 
 ## License
@@ -89,7 +89,7 @@ precedence. All settings are documented in [.env.example](.env.example).
 
 Endpoints:
 
-- `GET /api/families` – status, availability history (one point per round, oldest first) and
+- `GET /api/families` – status, availability history (a fixed number of time slots shared by all families, oldest first) and
   per-model results for every family of the current model list
 - `GET /api/latency` – live or aggregated (hour of day, day of week, day of month) latency per
   family, model or across all families (see [docs/api-latency.md](docs/api-latency.md))

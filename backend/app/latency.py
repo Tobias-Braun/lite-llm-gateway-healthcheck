@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Literal
 from zoneinfo import ZoneInfo
 
-from app import db
+from app import db, slots
 from app.config import Settings
 from app.status import ApiModel, Availability, _family_availability, _model_availability
 
@@ -71,34 +71,51 @@ def _bucket_of(round_at: str, span: Span, zone: ZoneInfo) -> int:
     return {"hour": local.hour, "weekday": local.weekday(), "monthday": local.day}[span]
 
 
-def _live_points(settings: Settings, family: str, names: list[str], model: str | None) -> list[LatencyPoint]:
-    if model is not None:
-        rounds = db.model_recent_rounds(settings.database_path, family, model, settings.history_limit)
-        return [
-            LatencyPoint(datetime=at, available=_model_availability(ok), latency_ms=latency, error=error)
-            for at, ok, latency, error in rounds
-        ]
-    rounds = db.family_latency_rounds(settings.database_path, family, names, settings.history_limit)
-    return [
-        LatencyPoint(
-            datetime=at,
-            available=_family_availability(succeeded, total),
-            latency_ms=round(latency) if latency is not None else None,
-        )
-        for at, succeeded, total, latency in rounds
-    ]
+def _live_points(
+    settings: Settings, family: str, names: list[str], model: str | None, now: datetime | None
+) -> tuple[list[LatencyPoint], list[int]]:
+    """Points on the shared slot grid (see `app.slots`), plus the latencies of the checks behind them."""
+    grid = slots.grid(settings.check_interval_seconds, settings.history_limit, now)
+    checks = db.checks_since(settings.database_path, family, names, grid[0].start) if grid else []
+    points, latencies = [], []
+    for slot, bucket in zip(grid, slots.latest_per_slot(grid, checks)):
+        ok = [r.latency_ms for r in bucket.values() if r.success and r.latency_ms is not None]
+        latencies += ok
+        if model is not None:
+            check = bucket.get(model)
+            points.append(
+                LatencyPoint(
+                    datetime=slot.end,
+                    available=_model_availability(check.success) if check else "unknown",
+                    latency_ms=check.latency_ms if check else None,
+                    error=check.error if check else None,
+                )
+            )
+        else:
+            points.append(
+                LatencyPoint(
+                    datetime=slot.end,
+                    available=_family_availability(sum(r.success for r in bucket.values()), len(bucket)),
+                    latency_ms=round(sum(ok) / len(ok)) if ok else None,
+                )
+            )
+    return points, latencies
 
 
 def _series(
-    settings: Settings, family: str, names: list[str], model: str | None, span: Span, days: int, zone: ZoneInfo
+    settings: Settings,
+    family: str,
+    names: list[str],
+    model: str | None,
+    span: Span,
+    days: int,
+    zone: ZoneInfo,
+    now: datetime | None,
 ) -> LatencySeries:
     if span == "live":
-        points = _live_points(settings, family, names, model)
-        # The summary covers the individual checks of the shown rounds, not the per-round means.
-        checks = db.latency_checks(settings.database_path, family, names, points[0].datetime) if points else []
-        return LatencySeries(
-            family=family, model=model, points=points, summary=_summary([latency for _, latency in checks])
-        )
+        points, latencies = _live_points(settings, family, names, model, now)
+        # The summary covers the individual checks of the shown slots, not the per-slot means.
+        return LatencySeries(family=family, model=model, points=points, summary=_summary(latencies))
 
     since = (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
     checks = db.latency_checks(settings.database_path, family, names, since)
@@ -116,11 +133,17 @@ def _series(
 
 
 def get_latency(
-    settings: Settings, span: Span, days: int, zone: ZoneInfo, family: str | None = None, model: str | None = None
+    settings: Settings,
+    span: Span,
+    days: int,
+    zone: ZoneInfo,
+    family: str | None = None,
+    model: str | None = None,
+    now: datetime | None = None,
 ) -> LatencyResponse:
     """Latency of one model, one family (mean of its successful active models) or every active family.
 
-    Live spans return the last `history_limit` rounds; aggregate spans bucket every successful
+    Live spans return the last `history_limit` slots of the shared grid; aggregate spans bucket every successful
     check of the last `days` days by local hour of day, weekday (Monday = 0) or day of month in `zone`.
     """
     families = db.active_models(settings.database_path)
@@ -135,5 +158,5 @@ def get_latency(
             if model not in names:
                 raise NotFoundError(f"Unknown model: {model}")
             names = [model]
-        series.append(_series(settings, f.title, names, model, span, days, zone))
+        series.append(_series(settings, f.title, names, model, span, days, zone, now))
     return LatencyResponse(span=span, series=series)

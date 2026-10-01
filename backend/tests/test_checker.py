@@ -146,9 +146,9 @@ def test_backfill_fake_history_clusters_flaky_failures_chronologically(
 
     asyncio.run(checker.backfill_fake_history(settings))
 
-    rounds = db.model_recent_rounds(settings.database_path, "Claude", "claude-opus-5", limit=48)
+    rounds = db.checks_since(settings.database_path, "Claude", ["claude-opus-5"], "")
     assert len(rounds) == 48
-    successes = [success for _, success, _, _ in rounds]
+    successes = [r.success for r in rounds]
     assert successes[:6] == [True, False, False, False, True, True]
     assert all(successes[6:])
 

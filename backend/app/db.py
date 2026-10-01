@@ -89,6 +89,18 @@ def _placeholders(values: list[str]) -> str:
     return ",".join("?" * len(values))
 
 
+def _check_result(row: sqlite3.Row) -> CheckResult:
+    return CheckResult(
+        round_id=row["round_id"],
+        round_at=row["round_at"],
+        family=row["family"],
+        model=row["model"],
+        success=bool(row["success"]),
+        latency_ms=row["latency_ms"],
+        error=row["error"],
+    )
+
+
 def latest_results(path: Path, family: str, models: list[str]) -> dict[str, CheckResult]:
     """Return the most recent result per model of a family, keyed by model name."""
     if not models:
@@ -100,53 +112,20 @@ def latest_results(path: Path, family: str, models: list[str]) -> dict[str, Chec
             " GROUP BY model)",
             [family, *models],
         ).fetchall()
-    return {
-        row["model"]: CheckResult(
-            round_id=row["round_id"],
-            round_at=row["round_at"],
-            family=row["family"],
-            model=row["model"],
-            success=bool(row["success"]),
-            latency_ms=row["latency_ms"],
-            error=row["error"],
-        )
-        for row in rows
-    }
+    return {row["model"]: _check_result(row) for row in rows}
 
 
-def recent_rounds(path: Path, family: str, models: list[str], limit: int) -> list[tuple[str, int, int]]:
-    """Return `(round_at, succeeded, total)` for the last `limit` rounds of a family, oldest first.
-
-    `total` is how many of the given (active) models reported in that round, so models that
-    became inactive no longer influence the family's availability.
-    """
-    if not models or limit <= 0:
+def checks_since(path: Path, family: str, models: list[str], since: str) -> list[CheckResult]:
+    """Return every check of the given models of a family after `since`, oldest first."""
+    if not models:
         return []
     with closing(connect(path)) as conn:
         rows = conn.execute(
-            "SELECT round_at, SUM(success) AS succeeded, COUNT(*) AS total FROM checks"
-            f" WHERE family = ? AND model IN ({_placeholders(models)})"
-            " GROUP BY round_id, round_at ORDER BY round_at DESC, round_id DESC LIMIT ?",
-            [family, *models, limit],
+            f"SELECT * FROM checks WHERE family = ? AND model IN ({_placeholders(models)}) AND round_at > ?"
+            " ORDER BY round_at, id",
+            [family, *models, since],
         ).fetchall()
-    return [(row["round_at"], row["succeeded"], row["total"]) for row in reversed(rows)]
-
-
-def family_latency_rounds(
-    path: Path, family: str, models: list[str], limit: int
-) -> list[tuple[str, int, int, float | None]]:
-    """Like `recent_rounds`, plus the mean latency of the round's successful checks (`None` if none succeeded)."""
-    if not models or limit <= 0:
-        return []
-    with closing(connect(path)) as conn:
-        rows = conn.execute(
-            "SELECT round_at, SUM(success) AS succeeded, COUNT(*) AS total,"
-            " AVG(CASE WHEN success = 1 THEN latency_ms END) AS latency FROM checks"
-            f" WHERE family = ? AND model IN ({_placeholders(models)})"
-            " GROUP BY round_id, round_at ORDER BY round_at DESC, round_id DESC LIMIT ?",
-            [family, *models, limit],
-        ).fetchall()
-    return [(row["round_at"], row["succeeded"], row["total"], row["latency"]) for row in reversed(rows)]
+    return [_check_result(row) for row in rows]
 
 
 def latency_checks(path: Path, family: str, models: list[str], since: str) -> list[tuple[str, int]]:
@@ -161,19 +140,6 @@ def latency_checks(path: Path, family: str, models: list[str], since: str) -> li
             [family, *models, since],
         ).fetchall()
     return [(row["round_at"], row["latency_ms"]) for row in rows]
-
-
-def model_recent_rounds(path: Path, family: str, model: str, limit: int) -> list[tuple[str, bool, int | None, str | None]]:
-    """Return `(round_at, success, latency_ms, error)` for the last `limit` rounds of a model, oldest first."""
-    if limit <= 0:
-        return []
-    with closing(connect(path)) as conn:
-        rows = conn.execute(
-            "SELECT round_at, success, latency_ms, error FROM checks WHERE family = ? AND model = ?"
-            " ORDER BY round_at DESC, id DESC LIMIT ?",
-            [family, model, limit],
-        ).fetchall()
-    return [(row["round_at"], bool(row["success"]), row["latency_ms"], row["error"]) for row in reversed(rows)]
 
 
 def replace_models(path: Path, families: list[ModelFamily]) -> None:
